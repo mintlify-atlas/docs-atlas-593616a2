@@ -1,0 +1,358 @@
+---
+title: 'Data Model'
+description: 'Data structures and the Elementos class'
+icon: 'database'
+---
+
+## Overview
+
+HuelvaPedia uses a single, flexible data model class called **`Elementos`** to represent all encyclopedia entries, from top-level categories to terminal items with detailed information.
+
+## Elementos Class
+
+The `Elementos` class is a POJO (Plain Old Java Object) designed to work seamlessly with Firebase Realtime Database automatic serialization/deserialization.
+
+### Complete Class Structure
+
+```java Elementos.java
+package com.example.huelvapedia;
+
+public class Elementos {
+    private String nombre;
+    private String foto;
+    private String descripcion;
+    private String ubicacion1;
+    private String ubicacion2;
+    private String telefono;
+    private Boolean ultimo;
+    private String enlace;
+
+    public Elementos() { //Constructor vacio
+    }
+
+    public Elementos(String nombre, String foto, String descripcion, 
+                     String ubicacion1, String ubicacion2, String telefono, 
+                     Boolean ultimo, String enlace) {
+        this.nombre = nombre;
+        this.foto = foto;
+        this.descripcion = descripcion;
+        this.ubicacion1 = ubicacion1;
+        this.ubicacion2 = ubicacion2;
+        this.telefono = telefono;
+        this.ultimo = ultimo;
+        this.enlace = enlace;
+    }
+
+    // Getters and setters...
+}
+```
+
+<Note>
+The empty constructor is **required** by Firebase for automatic deserialization from JSON to Java objects.
+</Note>
+
+## Field Definitions
+
+### Core Fields
+
+<AccordionGroup>
+  <Accordion title="nombre (String)" icon="tag">
+    **Purpose**: Display name of the entry
+    
+    **Usage**: 
+    - Category names (e.g., "Historia", "Gastronomía")
+    - Place names (e.g., "Catedral de Huelva")
+    - Event names
+    
+    **Required**: Yes
+    
+    ```java Adaptador.java:46
+    holder.nombre.setText(elemento.getNombre());
+    ```
+  </Accordion>
+
+  <Accordion title="foto (String)" icon="image">
+    **Purpose**: URL to the item's image
+    
+    **Usage**: Loaded via Picasso library into ImageView
+    
+    **Format**: Full URL (e.g., "https://example.com/image.jpg")
+    
+    **Required**: Yes
+    
+    ```java Adaptador.java:48
+    Picasso.get().load(elemento.getFoto()).into(holder.imagen);
+    ```
+  </Accordion>
+
+  <Accordion title="descripcion (String)" icon="align-left">
+    **Purpose**: Brief description or summary
+    
+    **Usage**: Displayed as secondary text in list items
+    
+    **Required**: Yes
+    
+    ```java Adaptador.java:47
+    holder.descripcion.setText(elemento.getDescripcion());
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Navigation Field
+
+<Accordion title="ultimo (Boolean)" icon="flag">
+**Purpose**: Determines if this is a terminal item or has subcategories
+
+**Values**:
+- `false`: Item has subcategories, clicking navigates to Secundaria
+- `true`: Terminal item, shows action buttons
+
+**Critical Logic**:
+
+```java Adaptador.java:54
+if (!elemento.getUltimo()) // Si no es el último, se navega a la Activity Secundaria
+{
+    holder.itemView.setOnClickListener(v -> {
+        Intent intent = new Intent(v.getContext(), Secundaria.class);
+        intent.putExtra("Nombre", elemento.getNombre());
+        v.getContext().startActivity(intent);
+    });
+}
+else // Es el último elemento, solo permite pulsar botones de acción
+{
+    // Show location, phone, web buttons
+}
+```
+
+**Required**: Yes (determines app behavior)
+</Accordion>
+
+### Action Fields (Optional)
+
+These fields are only relevant when `ultimo = true`:
+
+<Tabs>
+  <Tab title="Location">
+    **ubicacion1** (String): Base Google Maps URL
+    
+    **ubicacion2** (String): Address or coordinates to encode
+    
+    ```java Adaptador.java:74
+    if (tieneUbicacion)
+    {
+        holder.botonUbicacion.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setData(Uri.parse(elemento.getUbicacion1() + 
+                                     Uri.encode(elemento.getUbicacion2())));
+            Intent chooser = Intent.createChooser(intent, "Launch Maps");
+            v.getContext().startActivity(chooser);
+        });
+    }
+    ```
+    
+    <Info>
+    Both ubicacion1 and ubicacion2 must be non-null to show the location button.
+    </Info>
+  </Tab>
+  
+  <Tab title="Phone">
+    **telefono** (String): Phone number
+    
+    ```java Adaptador.java:89
+    if (tieneTelefono)
+    {
+        holder.botonLlamar.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_DIAL);
+            intent.setData(Uri.parse("tel:" + elemento.getTelefono()));
+            v.getContext().startActivity(intent);
+        });
+    }
+    ```
+    
+    <Info>
+    Opens the dialer app with the number pre-filled.
+    </Info>
+  </Tab>
+  
+  <Tab title="Web Link">
+    **enlace** (String): External URL (website, Wikipedia, etc.)
+    
+    ```java Adaptador.java:103
+    if (tieneEnlace)
+    {
+        holder.botonEnlace.setOnClickListener(v -> {
+            Uri link = Uri.parse(elemento.getEnlace());
+            Intent intent = new Intent(Intent.ACTION_VIEW, link);
+            v.getContext().startActivity(intent);
+        });
+    }
+    ```
+    
+    <Info>
+    Opens the URL in the user's default browser.
+    </Info>
+  </Tab>
+</Tabs>
+
+## Field Validation Logic
+
+The adapter checks for null values to determine button visibility:
+
+```java Adaptador.java:50
+boolean tieneUbicacion = elemento.getUbicacion1() != null && elemento.getUbicacion2() != null;
+boolean tieneTelefono = elemento.getTelefono() != null;
+boolean tieneEnlace = elemento.getEnlace() != null;
+```
+
+<Warning>
+If action fields are null, their corresponding buttons are hidden via `setVisibility(View.GONE)`.
+</Warning>
+
+## Data Flow
+
+### From Firebase to UI
+
+<Steps>
+  <Step title="Firebase Query">
+    Activity queries Firebase database reference
+    
+    ```java MainActivity.java:48
+    reference = FirebaseDatabase.getInstance()
+               .getReference()
+               .child("principal");
+    ```
+  </Step>
+  
+  <Step title="Automatic Deserialization">
+    Firebase converts JSON to Elementos objects
+    
+    ```java MainActivity.java:58
+    Elementos elemento = dataSnapshot.getValue(Elementos.class);
+    listaElementos.add(elemento);
+    ```
+  </Step>
+  
+  <Step title="Adapter Binding">
+    Adaptador binds Elementos fields to views
+    
+    ```java Adaptador.java:42
+    public void onBindViewHolder(@NonNull MiViewHolder holder, int position)
+    {
+        Elementos elemento = elementos.get(position);
+        holder.nombre.setText(elemento.getNombre());
+        holder.descripcion.setText(elemento.getDescripcion());
+        Picasso.get().load(elemento.getFoto()).into(holder.imagen);
+    }
+    ```
+  </Step>
+  
+  <Step title="UI Display">
+    RecyclerView displays the bound data
+  </Step>
+</Steps>
+
+## Getters and Setters
+
+All fields have standard JavaBean getters and setters:
+
+<CodeGroup>
+```java String Fields
+public String getNombre() {
+    return nombre;
+}
+
+public void setNombre(String nombre) {
+    this.nombre = nombre;
+}
+```
+
+```java Boolean Field
+public Boolean getUltimo() { 
+    return ultimo; 
+}
+
+public void setUltimo(Boolean ultimo) {
+    this.ultimo = ultimo;
+}
+```
+</CodeGroup>
+
+<Note>
+Firebase requires public getters/setters or public fields for serialization.
+</Note>
+
+## Example Data Instances
+
+### Category Item (Non-Terminal)
+
+```json
+{
+  "nombre": "Historia",
+  "foto": "https://example.com/historia.jpg",
+  "descripcion": "Descubre la rica historia de Huelva",
+  "ubicacion1": null,
+  "ubicacion2": null,
+  "telefono": null,
+  "ultimo": false,
+  "enlace": null
+}
+```
+
+### Place Item (Terminal)
+
+```json
+{
+  "nombre": "Catedral de Huelva",
+  "foto": "https://example.com/catedral.jpg",
+  "descripcion": "Templo barroco del siglo XVIII",
+  "ubicacion1": "https://www.google.com/maps/search/?api=1&query=",
+  "ubicacion2": "Plaza de la Merced, Huelva",
+  "telefono": "+34959240511",
+  "ultimo": true,
+  "enlace": "https://es.wikipedia.org/wiki/Catedral_de_Huelva"
+}
+```
+
+## Design Rationale
+
+<CardGroup cols={2}>
+  <Card title="Flexible Schema" icon="expand">
+    Same class handles categories and detailed items using nullable fields
+  </Card>
+  
+  <Card title="Firebase Compatible" icon="fire">
+    Empty constructor and getters/setters enable automatic serialization
+  </Card>
+  
+  <Card title="Minimal Complexity" icon="minimize">
+    Single POJO reduces codebase complexity
+  </Card>
+  
+  <Card title="Extensible" icon="plus">
+    Easy to add new fields without breaking existing functionality
+  </Card>
+</CardGroup>
+
+## Firebase Database Structure
+
+The Elementos class maps to this Firebase structure:
+
+```
+firebase-root/
+├── principal/
+│   ├── item1/
+│   │   ├── nombre: "Historia"
+│   │   ├── foto: "url"
+│   │   ├── descripcion: "..."
+│   │   ├── ultimo: false
+│   │   └── ...
+│   └── item2/
+├── historia/  (normalized from "Historia")
+│   ├── subitem1/
+│   └── subitem2/
+└── ...
+```
+
+<Info>
+See [Firebase Integration](/architecture/firebase-integration) for details on database reference patterns.
+</Info>

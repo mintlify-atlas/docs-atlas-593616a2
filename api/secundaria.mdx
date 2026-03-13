@@ -1,0 +1,381 @@
+---
+title: 'Secundaria'
+description: 'Secondary activity that displays sub-category encyclopedia entries'
+---
+
+## Overview
+
+The `Secundaria` class is a secondary activity in the HuelvaPedia app that displays encyclopedia entries for sub-categories. It receives a category name from `MainActivity`, loads the corresponding data from Firebase, and displays it in a RecyclerView.
+
+<Note>
+This activity dynamically determines which Firebase node to load based on the category name passed from the previous screen.
+</Note>
+
+## Class Declaration
+
+```java
+package com.example.huelvapedia;
+
+public class Secundaria extends AppCompatActivity
+```
+
+**Extends:** `AppCompatActivity`
+
+## Fields
+
+<ResponseField name="reference" type="DatabaseReference" access="private">
+Firebase Database reference pointing to a dynamically determined node based on the category name.
+</ResponseField>
+
+<ResponseField name="recyclerView" type="RecyclerView" access="private">
+RecyclerView component for displaying the list of sub-category entries.
+</ResponseField>
+
+<ResponseField name="listaElementos" type="ArrayList<Elementos>" access="private">
+List that stores the encyclopedia entries loaded from Firebase.
+</ResponseField>
+
+<ResponseField name="adaptador" type="Adaptador" access="private">
+Custom adapter for binding `Elementos` data to the RecyclerView.
+</ResponseField>
+
+<ResponseField name="botonTiempo" type="Button" access="private">
+Weather button reference (hidden in this activity to differentiate from MainActivity).
+</ResponseField>
+
+## Methods
+
+### onCreate
+
+```java
+@Override
+protected void onCreate(Bundle savedInstanceState)
+```
+
+Called when the activity is created. Initializes the UI, processes the incoming category name, sets up Firebase with the appropriate node, and configures event listeners.
+
+<ParamField path="savedInstanceState" type="Bundle">
+Bundle containing the activity's previously saved state, or null if there is no saved state
+</ParamField>
+
+**Implementation flow:**
+
+1. **UI Initialization**
+   - Sets content view to `R.layout.activity_main` (reuses MainActivity layout)
+   - Finds UI components
+   - Hides the weather button to differentiate from main screen
+
+2. **Action Bar Configuration**
+   - Sets the Huelva coat of arms icon
+   - Enables home icon display
+
+3. **RecyclerView Setup**
+   - Configures LinearLayoutManager
+   - Initializes empty ArrayList
+
+4. **Intent Processing**
+   - Receives category name from intent extra
+   - Normalizes the name (removes spaces, converts to lowercase)
+   - Uses normalized name as Firebase node reference
+
+5. **Firebase Configuration**
+   - Gets database reference to the specific category node
+   - Attaches ValueEventListener for real-time updates
+
+## Intent Extras
+
+This activity expects to receive data via Intent extras:
+
+<ParamField path="Nombre" type="String" required>
+The name of the category to load. This is passed from the previous activity (typically `MainActivity`).
+
+**Example values:**
+- "Historia" → Firebase node: "historia"
+- "Lugares de Interés" → Firebase node: "lugaresdeinteres"
+- "Gastronomía" → Firebase node: "gastronomia"
+</ParamField>
+
+## Firebase Node Resolution
+
+The activity normalizes the category name to determine the Firebase node:
+
+<CodeGroup>
+
+```java Name Normalization Logic
+Intent intent = getIntent();
+String nombreReferencia = intent.getStringExtra("Nombre")
+        .replace(" ", "")      // Remove all spaces
+        .toLowerCase();         // Convert to lowercase
+
+reference = FirebaseDatabase.getInstance().getReference().child(nombreReferencia);
+```
+
+```java Normalization Examples
+// Input: "Historia" → Output: "historia"
+// Input: "Lugares de Interés" → Output: "lugaresdeinteres"
+// Input: "Gastronomía" → Output: "gastronomia"
+// Input: "Playas Y Parques" → Output: "playasyparques"
+```
+
+</CodeGroup>
+
+## Firebase Integration
+
+<CodeGroup>
+
+```java Data Loading
+reference.addValueEventListener(new ValueEventListener() {
+    @Override
+    public void onDataChange(@NonNull DataSnapshot snapshot) {
+        listaElementos.clear(); // Prevents data duplication
+        for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
+            Elementos elemento = dataSnapshot.getValue(Elementos.class);
+            listaElementos.add(elemento);
+        }
+        adaptador = new Adaptador(Secundaria.this, listaElementos);
+        recyclerView.setAdapter(adaptador);
+    }
+    
+    @Override
+    public void onCancelled(@NonNull DatabaseError error) {
+        Toast.makeText(Secundaria.this, "Algo ha fallado", Toast.LENGTH_SHORT).show();
+    }
+});
+```
+
+```json Expected Firebase Structure
+{
+  "historia": {
+    "0": {
+      "nombre": "Época Romana",
+      "foto": "https://example.com/romana.jpg",
+      "descripcion": "Historia de la época romana en Huelva",
+      "ubicacion1": "https://maps.google.com/?q=",
+      "ubicacion2": "Museo de Huelva",
+      "telefono": "+34959123456",
+      "ultimo": true,
+      "enlace": "https://example.com/romana"
+    },
+    "1": {
+      "nombre": "Descubrimiento de América",
+      "foto": "https://example.com/descubrimiento.jpg",
+      "descripcion": "El papel de Huelva en el descubrimiento",
+      "ubicacion1": "https://maps.google.com/?q=",
+      "ubicacion2": "Muelle de las Carabelas",
+      "telefono": null,
+      "ultimo": true,
+      "enlace": "https://example.com/descubrimiento"
+    }
+  }
+}
+```
+
+</CodeGroup>
+
+## Navigation
+
+### Receiving Navigation
+
+This activity is typically launched from `MainActivity` or from another `Secundaria` instance:
+
+```java
+// From MainActivity's Adaptador
+Intent intent = new Intent(v.getContext(), Secundaria.class);
+intent.putExtra("Nombre", elemento.getNombre());
+v.getContext().startActivity(intent);
+```
+
+### Nested Navigation
+
+If a sub-category entry has `ultimo = false`, it can navigate to another `Secundaria` instance, creating a hierarchical navigation structure:
+
+```java
+// Category → Sub-category → Sub-sub-category
+MainActivity → Secundaria (Historia) → Secundaria (Época Romana)
+```
+
+## UI Differences from MainActivity
+
+<CardGroup cols={2}>
+  <Card title="Weather Button" icon="eye-slash">
+    **Hidden in Secundaria**
+    
+    ```java
+    botonTiempo.setVisibility(View.GONE);
+    ```
+    
+    The weather button is hidden to differentiate sub-category screens from the main screen.
+  </Card>
+  
+  <Card title="Layout Reuse" icon="recycle">
+    **Same Layout as MainActivity**
+    
+    Uses `R.layout.activity_main` but with modified visibility settings for certain components.
+  </Card>
+</CardGroup>
+
+## Usage Examples
+
+<CodeGroup>
+
+```java Launching Secundaria
+// From MainActivity or another activity
+Intent intent = new Intent(this, Secundaria.class);
+intent.putExtra("Nombre", "Historia");
+startActivity(intent);
+```
+
+```java Accessing passed category name
+// Inside Secundaria.onCreate()
+Intent intent = getIntent();
+if (intent.hasExtra("Nombre")) {
+    String categoryName = intent.getStringExtra("Nombre");
+    Log.d("Secundaria", "Loading category: " + categoryName);
+}
+```
+
+```java Handling missing intent extra
+Intent intent = getIntent();
+String nombreReferencia = intent.getStringExtra("Nombre");
+
+if (nombreReferencia == null || nombreReferencia.isEmpty()) {
+    Toast.makeText(this, "No category specified", Toast.LENGTH_SHORT).show();
+    finish();
+    return;
+}
+
+nombreReferencia = nombreReferencia.replace(" ", "").toLowerCase();
+```
+
+</CodeGroup>
+
+## Error Handling
+
+<Expandable title="Missing Intent Extra">
+  If the activity is launched without the "Nombre" extra, the app will crash with a `NullPointerException`. Consider adding validation:
+  
+  ```java
+  String nombreReferencia = intent.getStringExtra("Nombre");
+  if (nombreReferencia == null) {
+      Toast.makeText(this, "Error: No category name provided", Toast.LENGTH_SHORT).show();
+      finish();
+      return;
+  }
+  ```
+</Expandable>
+
+<Expandable title="Firebase Node Not Found">
+  If the normalized category name doesn't match any Firebase node, the RecyclerView will be empty:
+  
+  ```java
+  @Override
+  public void onDataChange(@NonNull DataSnapshot snapshot) {
+      listaElementos.clear();
+      
+      if (!snapshot.exists()) {
+          Toast.makeText(Secundaria.this, 
+              "No data found for this category", 
+              Toast.LENGTH_SHORT).show();
+          return;
+      }
+      
+      // Continue with normal data loading...
+  }
+  ```
+</Expandable>
+
+<Expandable title="Database Error">
+  Network issues or permission errors are handled by the `onCancelled` callback:
+  
+  ```java
+  @Override
+  public void onCancelled(@NonNull DatabaseError error) {
+      Toast.makeText(Secundaria.this, "Algo ha fallado", Toast.LENGTH_SHORT).show();
+      Log.e("Secundaria", "Firebase error: " + error.getMessage());
+  }
+  ```
+</Expandable>
+
+## Navigation Flow Example
+
+A typical user journey through the app:
+
+```mermaid
+graph LR
+    A[MainActivity] -->|Click "Historia"| B[Secundaria: historia]
+    A -->|Click "Monumentos"| C[Secundaria: monumentos]
+    B -->|Click "Época Romana"| D[Details View]
+    B -->|If ultimo=false| E[Another Secundaria]
+    C -->|Click entry| F[Details View]
+```
+
+<Steps>
+  <Step title="User opens app">
+    `MainActivity` loads and displays main categories from "principal" node
+  </Step>
+  
+  <Step title="User taps 'Historia'">
+    `MainActivity` launches `Secundaria` with intent extra `Nombre = "Historia"`
+  </Step>
+  
+  <Step title="Secundaria processes">
+    Normalizes "Historia" → "historia" and loads data from that Firebase node
+  </Step>
+  
+  <Step title="User views sub-categories">
+    `Secundaria` displays historical periods or topics related to Huelva's history
+  </Step>
+  
+  <Step title="Final entries show actions">
+    Entries with `ultimo = true` display buttons for map, phone, and web links instead of allowing further navigation
+  </Step>
+</Steps>
+
+## Performance Considerations
+
+<Warning>
+Like `MainActivity`, the `ValueEventListener` remains active even when the activity is in the background. Consider removing the listener to save resources:
+
+```java
+private ValueEventListener valueEventListener;
+
+@Override
+protected void onCreate(Bundle savedInstanceState) {
+    // ... setup code ...
+    
+    valueEventListener = new ValueEventListener() {
+        // ... listener implementation ...
+    };
+    
+    reference.addValueEventListener(valueEventListener);
+}
+
+@Override
+protected void onDestroy() {
+    super.onDestroy();
+    if (reference != null && valueEventListener != null) {
+        reference.removeEventListener(valueEventListener);
+    }
+}
+```
+</Warning>
+
+## Dependencies
+
+Same dependencies as `MainActivity`:
+
+```gradle
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.x.x'
+    implementation 'androidx.recyclerview:recyclerview:1.x.x'
+    implementation platform('com.google.firebase:firebase-bom:32.x.x')
+    implementation 'com.google.firebase:firebase-database'
+    implementation 'com.google.android.material:material:1.x.x'
+}
+```
+
+## Related Classes
+
+- [Elementos](/api/elementos) - Data model for encyclopedia entries
+- [Adaptador](/api/adaptador) - RecyclerView adapter used to display entries
+- [MainActivity](/api/main-activity) - Main activity that navigates to this one

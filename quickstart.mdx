@@ -1,80 +1,280 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: 'Quickstart'
+description: 'Get HuelvaPedia up and running in minutes'
+icon: 'rocket'
 ---
 
-## Get started in three steps
+Get your local development environment set up and run HuelvaPedia in just a few steps.
 
-Get your documentation site running locally and make your first customization.
+## Prerequisites
 
-### Step 1: Set up your local environment
+Before you begin, ensure you have the following installed:
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+- **Android Studio** (Electric Eel or newer recommended)
+- **Android SDK** with API 30+ 
+- **Java JDK 11** or higher
+- **Git** for cloning the repository
+- **Active internet connection** (required for the app to fetch data from Firebase)
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  HuelvaPedia requires a minimum device API level of 27 (Android 8.1 Oreo) to run.
 </Note>
+
+## Setup Steps
+
+<Steps>
+  <Step title="Clone the repository">
+    Clone the HuelvaPedia repository to your local machine:
+    
+    ```bash
+    git clone https://github.com/JuancaCalvino/HuelvaPedia.git
+    ```
+    
+    Navigate into the project directory:
+    
+    ```bash
+    cd HuelvaPedia
+    ```
+  </Step>
+
+  <Step title="Open in Android Studio">
+    1. Launch Android Studio
+    2. Select **File > Open...**
+    3. Navigate to the cloned `HuelvaPedia` folder and select it
+    4. Wait for Android Studio to index the project and sync Gradle
+    
+    <Tip>
+      The project uses Gradle 7.5. Android Studio will automatically download the required Gradle version on first sync.
+    </Tip>
+  </Step>
+
+  <Step title="Configure Firebase">
+    <Warning>
+      The `google-services.json` file is **not included** in the repository for security reasons. You must provide your own Firebase configuration.
+    </Warning>
+    
+    ### Create a Firebase Project
+    
+    1. Go to the [Firebase Console](https://console.firebase.google.com/)
+    2. Click **Add project** and follow the setup wizard
+    3. Once created, click **Add app** and select **Android**
+    
+    ### Register Your Android App
+    
+    1. Enter the package name: `com.example.huelvapedia`
+    2. Optionally add an app nickname (e.g., "HuelvaPedia Dev")
+    3. Click **Register app**
+    
+    ### Download Configuration File
+    
+    1. Download the `google-services.json` file
+    2. Place it in the `app/` directory of your project:
+    
+    ```
+    HuelvaPedia/
+    ├── app/
+    │   ├── google-services.json  ← Place file here
+    │   ├── build.gradle
+    │   └── src/
+    ├── build.gradle
+    └── settings.gradle
+    ```
+    
+    ### Set Up Realtime Database
+    
+    1. In Firebase Console, navigate to **Build > Realtime Database**
+    2. Click **Create Database**
+    3. Choose a location and start in **test mode** (for development)
+    4. Create the following database structure:
+    
+    ```json
+    {
+      "principal": {
+        "item1": {
+          "titulo": "Gastronomía",
+          "subtitulo": "Platos típicos de Huelva",
+          "imagen": "https://example.com/image.jpg",
+          "categoria": "gastronomia"
+        },
+        "item2": {
+          "titulo": "Historia",
+          "subtitulo": "Momentos históricos de Huelva",
+          "imagen": "https://example.com/image.jpg",
+          "categoria": "historia"
+        }
+      }
+    }
+    ```
+    
+    <Note>
+      The app queries the `principal` node at the database root. Each item should contain `titulo`, `subtitulo`, `imagen`, and `categoria` fields.
+    </Note>
+  </Step>
+
+  <Step title="Verify Dependencies">
+    The project includes all necessary dependencies in `app/build.gradle`:
+    
+    ```gradle app/build.gradle
+    dependencies {
+        // Firebase
+        implementation 'com.google.firebase:firebase-database:19.7.0'
+        
+        // Networking
+        implementation 'com.android.volley:volley:1.2.1'
+        
+        // Image Loading
+        implementation 'com.squareup.picasso:picasso:2.8'
+        
+        // UI Components
+        implementation 'androidx.appcompat:appcompat:1.2.0'
+        implementation 'com.google.android.material:material:1.3.0'
+        implementation 'androidx.cardview:cardview:1.0.0'
+        implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
+    }
+    ```
+    
+    These will be automatically downloaded during the Gradle sync.
+  </Step>
+
+  <Step title="Build and Run">
+    ### Sync Gradle
+    
+    If Android Studio hasn't already synced Gradle:
+    
+    1. Click **File > Sync Project with Gradle Files**
+    2. Wait for the sync to complete (check the bottom status bar)
+    
+    ### Run the App
+    
+    <CodeGroup>
+    ```bash Using Android Studio
+    # Click the Run button (▶) in the toolbar
+    # Or use the keyboard shortcut
+    Shift + F10
+    ```
+    
+    ```bash Using Command Line
+    # Build and install on connected device
+    ./gradlew installDebug
+    
+    # Or build an APK
+    ./gradlew assembleDebug
+    ```
+    </CodeGroup>
+    
+    ### Choose a Device
+    
+    Select one of the following:
+    - **Physical Device**: Connect via USB with USB debugging enabled
+    - **Emulator**: Create a virtual device with API 27+ (Android 8.1 or higher)
+    
+    <Tip>
+      For the best testing experience, use a device with API 30 (Android 11), which is the app's target SDK version.
+    </Tip>
+  </Step>
+
+  <Step title="Verify the App is Running">
+    After launching, you should see:
+    
+    1. **Splash Screen** (`PantallaCarga`) with the Huelva coat of arms
+    2. **Main Screen** (`MainActivity`) displaying categories from Firebase
+    3. Data populated in a RecyclerView with cards for each category
+    
+    If you see "Algo ha fallado" (Something failed), check:
+    - Your `google-services.json` file is in the correct location
+    - Firebase Realtime Database has data in the `principal` node
+    - Your device/emulator has an active internet connection
+    - Firebase Database rules allow read access
+  </Step>
+</Steps>
+
+## Key Project Configuration
+
+### Application ID
+
+```xml AndroidManifest.xml
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application
+        android:icon="@mipmap/ic_escudohuelva"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.HuelvaPedia">
+        <!-- ... -->
+    </application>
+</manifest>
+```
+
+The package name is `com.example.huelvapedia` as defined in `app/build.gradle`:
+
+```gradle app/build.gradle
+android {
+    defaultConfig {
+        applicationId "com.example.huelvapedia"
+        minSdkVersion 27
+        targetSdkVersion 30
+        versionCode 1
+        versionName "1.0"
+    }
+}
+```
+
+### Required Permissions
+
+The app requires internet access to communicate with Firebase:
+
+```xml AndroidManifest.xml
+<uses-permission android:name="android.permission.INTERNET"/>
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Gradle sync fails">
+    **Solution:** 
+    - Ensure you have Java JDK 11 or higher installed
+    - Check your internet connection (Gradle needs to download dependencies)
+    - Try **File > Invalidate Caches / Restart** in Android Studio
+  </Accordion>
+  
+  <Accordion title="google-services.json not found">
+    **Solution:**
+    - Verify the file is in the `app/` directory (not `app/src/`)
+    - Ensure the file name is exactly `google-services.json`
+    - Re-sync Gradle after adding the file
+  </Accordion>
+  
+  <Accordion title="App crashes on launch">
+    **Solution:**
+    - Check Logcat for Firebase authentication errors
+    - Verify your Firebase project's package name matches `com.example.huelvapedia`
+    - Ensure Realtime Database rules allow read access
+  </Accordion>
+  
+  <Accordion title="No data appears in the app">
+    **Solution:**
+    - Verify your Firebase Realtime Database has a `principal` node with data
+    - Check that database rules allow read access
+    - Confirm your device has an active internet connection
+    - Look for error messages in Logcat
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Architecture Overview" icon="sitemap" href="/architecture/overview">
+    Explore the app's architecture and design patterns
+  </Card>
+  
+  <Card title="Firebase Integration" icon="database" href="/architecture/firebase-integration">
+    Learn how HuelvaPedia uses Firebase Realtime Database
+  </Card>
+  
+  <Card title="Components" icon="cube" href="/components/activities">
+    Discover the core Android components and activities
+  </Card>
+  
+  <Card title="Features" icon="stars" href="/features/category-navigation">
+    Explore the app's key features and integrations
+  </Card>
+</CardGroup>

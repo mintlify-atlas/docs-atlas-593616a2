@@ -1,0 +1,503 @@
+---
+title: 'Firebase Configuration'
+description: 'Complete guide to setting up Firebase Realtime Database for HuelvaPedia'
+---
+
+## Overview
+
+Firebase Realtime Database is the backbone of HuelvaPedia, storing all encyclopedia content about Huelva, Spain. This guide walks you through creating a Firebase project, configuring it for Android, and integrating it with HuelvaPedia.
+
+<Warning>
+The `google-services.json` file is not included in the repository for security reasons and is added to `.gitignore`. You must create your own Firebase project and download this configuration file to build the app.
+</Warning>
+
+## Why Firebase?
+
+HuelvaPedia uses Firebase Realtime Database to:
+
+- **Store encyclopedia content** in the cloud without requiring app updates
+- **Fetch data dynamically** when users request specific information
+- **Keep the app lightweight** by not storing heavy data locally
+- **Enable real-time updates** to content without redeploying the app
+- **Scale easily** as content grows
+
+## Create Firebase Project
+
+<Steps>
+  <Step title="Access Firebase Console">
+    Navigate to the [Firebase Console](https://console.firebase.google.com/) and sign in with your Google account.
+  </Step>
+  
+  <Step title="Create New Project">
+    Click **Add project** or **Create a project**.
+    
+    Enter a project name (e.g., "HuelvaPedia" or "HuelvaPedia-Dev").
+  </Step>
+  
+  <Step title="Configure Google Analytics">
+    Choose whether to enable Google Analytics for your project. This is optional for HuelvaPedia.
+    
+    - If enabled, select or create a Google Analytics account
+    - If disabled, uncheck the option and continue
+  </Step>
+  
+  <Step title="Create Project">
+    Click **Create project** and wait for Firebase to provision your project (typically takes 30-60 seconds).
+  </Step>
+  
+  <Step title="Navigate to Project">
+    Once ready, click **Continue** to access your Firebase project dashboard.
+  </Step>
+</Steps>
+
+## Register Android App
+
+<Steps>
+  <Step title="Add Android App">
+    From your Firebase project dashboard, click the **Android icon** to add an Android app to your project.
+  </Step>
+  
+  <Step title="Enter Package Name">
+    In the registration form, enter the exact package name:
+    
+    ```
+    com.example.huelvapedia
+    ```
+    
+    <Warning>
+    The package name must exactly match `com.example.huelvapedia` as specified in the app/build.gradle file. Any mismatch will cause build failures.
+    </Warning>
+  </Step>
+  
+  <Step title="Optional: Add App Nickname">
+    Optionally, add a nickname for easy identification (e.g., "HuelvaPedia Android").
+  </Step>
+  
+  <Step title="Optional: Debug Signing Certificate">
+    The debug signing certificate SHA-1 is optional for this setup but may be needed if you add Firebase Authentication later. You can skip this for now.
+  </Step>
+  
+  <Step title="Register App">
+    Click **Register app** to continue.
+  </Step>
+</Steps>
+
+<Tip>
+You can find the package name in your project at app/build.gradle:11 under `applicationId "com.example.huelvapedia"`.
+</Tip>
+
+## Download Configuration File
+
+<Steps>
+  <Step title="Download google-services.json">
+    After registering your app, Firebase will present a download button for the `google-services.json` file.
+    
+    Click **Download google-services.json** to save the file to your computer.
+  </Step>
+  
+  <Step title="Locate the File">
+    Find the downloaded file in your Downloads folder or browser's download location.
+  </Step>
+  
+  <Step title="Move to Project">
+    Move or copy the `google-services.json` file to the `app/` directory of your HuelvaPedia project.
+    
+    ```bash
+    mv ~/Downloads/google-services.json ~/path/to/HuelvaPedia/app/
+    ```
+    
+    The file should be placed at: `HuelvaPedia/app/google-services.json`
+  </Step>
+  
+  <Step title="Verify Placement">
+    Confirm the file structure looks like this:
+    
+    ```
+    HuelvaPedia/
+    ├── app/
+    │   ├── google-services.json    ← File should be here
+    │   ├── build.gradle
+    │   └── src/
+    ├── build.gradle
+    └── gradle.properties
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+Do not commit `google-services.json` to version control. It's already included in `.gitignore` to prevent accidental exposure of Firebase credentials.
+</Warning>
+
+## Configure Google Services Plugin
+
+The project is already configured to use the Google Services plugin, but let's verify:
+
+<CodeGroup>
+
+```gradle app/build.gradle (Plugins)
+plugins {
+    id 'com.android.application'
+    id 'com.google.gms.google-services'  // Google Services plugin
+}
+```
+
+```gradle build.gradle (Project - Dependencies)
+buildscript {
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.4.2'
+        classpath 'com.google.gms:google-services:4.3.15'  // Plugin classpath
+    }
+}
+```
+
+```gradle app/build.gradle (Firebase SDK)
+dependencies {
+    implementation 'com.google.firebase:firebase-database:19.7.0'
+    // ... other dependencies
+}
+```
+
+</CodeGroup>
+
+These configurations are already in place. The `google-services` plugin reads your `google-services.json` file and generates the necessary configuration code.
+
+## Set Up Firebase Realtime Database
+
+<Steps>
+  <Step title="Navigate to Database">
+    In the Firebase Console, click **Realtime Database** from the left sidebar under the Build section.
+  </Step>
+  
+  <Step title="Create Database">
+    Click **Create Database** to set up your Realtime Database.
+  </Step>
+  
+  <Step title="Select Location">
+    Choose a database location closest to your users. For HuelvaPedia (targeting Spain), select:
+    - **europe-west1** (Belgium) - Recommended for European users
+    
+    Click **Next**.
+  </Step>
+  
+  <Step title="Configure Security Rules">
+    Choose security rules mode:
+    
+    - **Test mode** (Recommended for development): Allows all reads and writes for 30 days
+    - **Locked mode**: Denies all reads and writes (you'll need to configure rules manually)
+    
+    For development, select **Start in test mode** and click **Enable**.
+  </Step>
+</Steps>
+
+<Warning>
+Test mode security rules expire after 30 days. Remember to update them before expiration to prevent access issues.
+</Warning>
+
+## Database Structure
+
+HuelvaPedia expects a specific database structure to function correctly. Here's the recommended structure:
+
+```json
+{
+  "categories": {
+    "history": {
+      "name": "Historia",
+      "description": "Historical information about Huelva",
+      "icon": "history_icon_url"
+    },
+    "gastronomy": {
+      "name": "Gastronomía",
+      "description": "Traditional Huelvan cuisine",
+      "icon": "food_icon_url"
+    },
+    "places": {
+      "name": "Lugares de Interés",
+      "description": "Points of interest in Huelva",
+      "icon": "places_icon_url"
+    }
+  },
+  "content": {
+    "history": {
+      "item_1": {
+        "title": "Discovery of America",
+        "description": "Huelva's role in Columbus's voyage",
+        "image_url": "https://example.com/image.jpg",
+        "full_text": "Detailed historical content..."
+      }
+    },
+    "gastronomy": {
+      "item_1": {
+        "title": "Gambas Blancas",
+        "description": "Famous white prawns from Huelva",
+        "image_url": "https://example.com/gambas.jpg",
+        "full_text": "Information about the dish..."
+      }
+    },
+    "places": {
+      "item_1": {
+        "title": "Monastery of La Rábida",
+        "description": "Historic monastery",
+        "image_url": "https://example.com/rabida.jpg",
+        "location": {
+          "latitude": 37.2083,
+          "longitude": -6.9167
+        },
+        "full_text": "Details about the location..."
+      }
+    }
+  }
+}
+```
+
+<Accordion title="Understanding the Database Schema">
+  The database is organized into two main sections:
+
+  **Categories:**
+  - Defines the main categories of encyclopedia content
+  - Each category has a name, description, and optional icon
+  - Used to populate the main menu and navigation
+
+  **Content:**
+  - Organized by category
+  - Each item contains title, description, image URL, and detailed text
+  - Items are fetched on-demand when users request specific information
+  - Images are loaded via Picasso using the provided URLs
+</Accordion>
+
+## Import Sample Data
+
+<Steps>
+  <Step title="Access Database Console">
+    In Firebase Console, ensure you're viewing your Realtime Database.
+  </Step>
+  
+  <Step title="Import JSON Data">
+    Click the three dots menu (⋮) in the top-right of the database view and select **Import JSON**.
+  </Step>
+  
+  <Step title="Upload Data">
+    Prepare a JSON file with your encyclopedia content following the structure above, then upload it.
+    
+    Alternatively, manually add data using the **+** button in the database interface.
+  </Step>
+  
+  <Step title="Verify Structure">
+    Ensure your data matches the expected structure with `categories` and `content` root nodes.
+  </Step>
+</Steps>
+
+<Note>
+You'll need to populate the database with actual content about Huelva. The app expects Spanish language content by default.
+</Note>
+
+## Configure Security Rules
+
+For production deployment, update your security rules to be more restrictive:
+
+```json
+{
+  "rules": {
+    ".read": true,
+    ".write": false
+  }
+}
+```
+
+This configuration:
+- Allows all users to **read** data (required for the app to function)
+- Prevents all **write** operations from clients (data should only be updated via Firebase Console)
+
+<Steps>
+  <Step title="Access Rules">
+    In Firebase Console, go to **Realtime Database > Rules** tab.
+  </Step>
+  
+  <Step title="Update Rules">
+    Replace the existing rules with the production-ready rules above.
+  </Step>
+  
+  <Step title="Publish Changes">
+    Click **Publish** to apply the new rules.
+  </Step>
+</Steps>
+
+<Warning>
+Never allow public write access to your database in production. This prevents unauthorized users from modifying your encyclopedia content.
+</Warning>
+
+## Sync and Build Project
+
+<Steps>
+  <Step title="Open Android Studio">
+    Return to Android Studio with your HuelvaPedia project open.
+  </Step>
+  
+  <Step title="Sync Project">
+    Click **Sync Project with Gradle Files** (elephant icon) in the toolbar.
+    
+    The Google Services plugin will now process your `google-services.json` file and configure Firebase SDK.
+  </Step>
+  
+  <Step title="Wait for Sync">
+    Wait for Gradle sync to complete successfully. Check the Build output panel for any errors.
+  </Step>
+  
+  <Step title="Build Project">
+    Build the project by clicking **Build > Make Project** or pressing `Ctrl+F9` (Windows/Linux) or `Cmd+F9` (Mac).
+  </Step>
+</Steps>
+
+<Tip>
+If Gradle sync fails, try invalidating caches: `File > Invalidate Caches > Invalidate and Restart`.
+</Tip>
+
+## Verify Firebase Connection
+
+To verify Firebase is properly configured:
+
+<CodeGroup>
+
+```java MainActivity.java
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
+public class MainActivity extends AppCompatActivity {
+    private DatabaseReference mDatabase;
+    
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        
+        // Initialize Firebase Database
+        mDatabase = FirebaseDatabase.getInstance().getReference();
+        
+        // Test connection
+        mDatabase.child("categories").get().addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                Log.d("Firebase", "Connection successful!");
+            } else {
+                Log.e("Firebase", "Connection failed", task.getException());
+            }
+        });
+    }
+}
+```
+
+</CodeGroup>
+
+## Test the Application
+
+<Steps>
+  <Step title="Connect Device">
+    Connect an Android device via USB (with USB debugging enabled) or start an Android emulator.
+    
+    <Note>
+    The emulator or device must have an active internet connection to access Firebase.
+    </Note>
+  </Step>
+  
+  <Step title="Run App">
+    Click the **Run** button (▶) in Android Studio or press `Shift+F10`.
+    
+    Select your target device when prompted.
+  </Step>
+  
+  <Step title="Verify Data Loading">
+    Once the app launches, verify that:
+    - Categories load from Firebase
+    - Content displays when selected
+    - Images load via Picasso
+    - No network errors appear in Logcat
+  </Step>
+  
+  <Step title="Check Logcat">
+    Monitor Logcat (`View > Tool Windows > Logcat`) for Firebase connection messages and any errors.
+  </Step>
+</Steps>
+
+## Common Firebase Issues
+
+<Accordion title="Build Failed - google-services.json Not Found">
+  **Solution:** Ensure `google-services.json` is placed directly in the `app/` directory, not in `app/src/` or any subdirectory.
+</Accordion>
+
+<Accordion title="Package Name Mismatch Error">
+  **Solution:** Verify that the package name in `google-services.json` matches `com.example.huelvapedia` exactly. Re-download the file from Firebase Console if needed.
+</Accordion>
+
+<Accordion title="Database Permission Denied">
+  **Solution:** Check your Firebase Realtime Database security rules. Ensure read access is allowed. If using test mode, verify it hasn't expired (30-day limit).
+</Accordion>
+
+<Accordion title="Data Not Loading">
+  **Solution:** 
+  - Verify your device/emulator has internet connection
+  - Check Logcat for Firebase errors
+  - Verify database structure matches expected format
+  - Ensure data exists in your Firebase Realtime Database
+</Accordion>
+
+<Accordion title="Google Services Plugin Version Conflict">
+  **Solution:** The project uses `google-services:4.3.15`. If you encounter version conflicts, ensure your Android Gradle Plugin version (7.4.2) is compatible.
+</Accordion>
+
+## Firebase Database Best Practices
+
+<Tip>
+Follow these best practices for optimal performance:
+
+- **Minimize data size**: Only include necessary fields in your database
+- **Use efficient queries**: Query specific paths rather than downloading entire database
+- **Enable persistence**: Add `.setPersistenceEnabled(true)` for offline support
+- **Index data**: Add indexes to fields you frequently query
+- **Monitor usage**: Check Firebase Console for usage metrics and quotas
+</Tip>
+
+## Database Security Checklist
+
+Before going to production:
+
+- [ ] Security rules configured to prevent public writes
+- [ ] Test mode rules replaced with production rules
+- [ ] Database structure validated
+- [ ] Sample data added and tested
+- [ ] `google-services.json` added to `.gitignore`
+- [ ] API keys reviewed (Firebase handles this automatically)
+- [ ] Usage quotas understood (Spark plan: 1GB stored, 10GB downloaded/month)
+
+## Firebase Dependencies Reference
+
+HuelvaPedia uses these Firebase-related dependencies:
+
+| Dependency | Version | Purpose |
+|------------|---------|---------|
+| google-services | 4.3.15 | Gradle plugin for Firebase integration |
+| firebase-database | 19.7.0 | Firebase Realtime Database SDK |
+
+These are specified in:
+- `build.gradle` (project level) for the plugin
+- `app/build.gradle` for the SDK dependency
+
+## Next Steps
+
+Congratulations! Your Firebase configuration is complete. You can now:
+
+1. **Run the app** on an emulator or physical device
+2. **Populate content** in your Firebase Realtime Database
+3. **Test features** like browsing categories and viewing encyclopedia entries
+4. **Monitor usage** in Firebase Console
+5. **Begin development** to customize or extend the app
+
+<Note>
+Remember to populate your Firebase Realtime Database with actual encyclopedia content about Huelva for the app to display meaningful information.
+</Note>
+
+## Additional Resources
+
+- [Firebase Realtime Database Documentation](https://firebase.google.com/docs/database)
+- [Firebase Android Setup Guide](https://firebase.google.com/docs/android/setup)
+- [Firebase Security Rules](https://firebase.google.com/docs/database/security)
+- [Firebase Pricing](https://firebase.google.com/pricing)
+
+Your HuelvaPedia app is now fully configured and ready for development!

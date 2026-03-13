@@ -1,0 +1,307 @@
+---
+title: 'MainActivity'
+description: 'Main activity that displays the primary encyclopedia categories'
+---
+
+## Overview
+
+The `MainActivity` class is the entry point of the HuelvaPedia app. It displays the main categories of the encyclopedia in a RecyclerView, loads data from Firebase Realtime Database, and provides access to the weather feature.
+
+<Note>
+This activity loads data from the "principal" node in Firebase and automatically updates when the database changes.
+</Note>
+
+## Class Declaration
+
+```java
+package com.example.huelvapedia;
+
+public class MainActivity extends AppCompatActivity
+```
+
+**Extends:** `AppCompatActivity`
+
+## Fields
+
+<ResponseField name="reference" type="DatabaseReference" access="private">
+Firebase Database reference pointing to the "principal" node containing main categories.
+</ResponseField>
+
+<ResponseField name="recyclerView" type="RecyclerView" access="private">
+RecyclerView component for displaying the list of encyclopedia entries.
+</ResponseField>
+
+<ResponseField name="listaElementos" type="ArrayList<Elementos>" access="private">
+List that stores the encyclopedia entries loaded from Firebase.
+</ResponseField>
+
+<ResponseField name="adaptador" type="Adaptador" access="private">
+Custom adapter for binding `Elementos` data to the RecyclerView.
+</ResponseField>
+
+<ResponseField name="botonTiempo" type="Button" access="private">
+Button that navigates to the weather information screen.
+</ResponseField>
+
+## Methods
+
+### onCreate
+
+```java
+@Override
+protected void onCreate(Bundle savedInstanceState)
+```
+
+Called when the activity is first created. Initializes the UI, sets up Firebase, and configures event listeners.
+
+<ParamField path="savedInstanceState" type="Bundle">
+Bundle containing the activity's previously saved state, or null if there is no saved state
+</ParamField>
+
+**Implementation flow:**
+
+1. **UI Initialization**
+   - Sets content view to `R.layout.activity_main`
+   - Finds and initializes UI components
+
+2. **Action Bar Configuration**
+   - Sets the Huelva coat of arms icon
+   - Enables home icon display
+
+3. **RecyclerView Setup**
+   - Configures LinearLayoutManager
+   - Initializes empty ArrayList
+
+4. **Firebase Configuration**
+   - Gets database reference to "principal" node
+   - Attaches ValueEventListener for real-time updates
+
+5. **Event Listeners**
+   - Sets up weather button click listener
+
+**Example:**
+```java
+// This method is called automatically when the activity starts
+// No manual invocation needed
+```
+
+## Firebase Integration
+
+The activity uses Firebase Realtime Database to load encyclopedia entries:
+
+<CodeGroup>
+
+```java Data Loading Logic
+reference = FirebaseDatabase.getInstance().getReference().child("principal");
+
+reference.addValueEventListener(new ValueEventListener() {
+    @Override
+    public void onDataChange(@NonNull DataSnapshot snapshot) {
+        listaElementos.clear(); // Prevents data duplication
+        for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
+            Elementos elemento = dataSnapshot.getValue(Elementos.class);
+            listaElementos.add(elemento);
+        }
+        adaptador = new Adaptador(MainActivity.this, listaElementos);
+        recyclerView.setAdapter(adaptador);
+    }
+    
+    @Override
+    public void onCancelled(@NonNull DatabaseError error) {
+        Toast.makeText(MainActivity.this, "Algo ha fallado", Toast.LENGTH_SHORT).show();
+    }
+});
+```
+
+```json Expected Firebase Structure
+{
+  "principal": {
+    "0": {
+      "nombre": "Historia",
+      "foto": "https://example.com/historia.jpg",
+      "descripcion": "Historia de Huelva",
+      "ubicacion1": null,
+      "ubicacion2": null,
+      "telefono": null,
+      "ultimo": false,
+      "enlace": null
+    },
+    "1": {
+      "nombre": "Monumentos",
+      "foto": "https://example.com/monumentos.jpg",
+      "descripcion": "Monumentos principales",
+      "ubicacion1": null,
+      "ubicacion2": null,
+      "telefono": null,
+      "ultimo": false,
+      "enlace": null
+    }
+  }
+}
+```
+
+</CodeGroup>
+
+## Navigation
+
+The activity provides navigation to two destinations:
+
+<Tabs>
+  <Tab title="Secundaria Activity">
+    When a user taps on a non-final entry (`ultimo = false`), the adapter navigates to `Secundaria` activity:
+    
+    ```java
+    Intent intent = new Intent(v.getContext(), Secundaria.class);
+    intent.putExtra("Nombre", elemento.getNombre());
+    v.getContext().startActivity(intent);
+    ```
+    
+    The entry name is passed as an extra to load the corresponding sub-category.
+  </Tab>
+  
+  <Tab title="Tiempo Activity">
+    When the weather button is clicked, navigates to the weather screen:
+    
+    ```java
+    botonTiempo.setOnClickListener(v -> {
+        Intent intent = new Intent(v.getContext(), Tiempo.class);
+        startActivity(intent);
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## UI Components
+
+The activity's layout includes:
+
+<CardGroup cols={2}>
+  <Card title="RecyclerView" icon="list">
+    **ID:** `R.id.recicler`
+    
+    Displays the list of main encyclopedia categories using LinearLayoutManager.
+  </Card>
+  
+  <Card title="Weather Button" icon="cloud-sun">
+    **ID:** `R.id.botontiempo`
+    
+    Opens the weather information screen showing current conditions in Huelva.
+  </Card>
+  
+  <Card title="Action Bar" icon="bars">
+    Displays the Huelva coat of arms icon (`R.mipmap.ic_escudohuelva`) and app title.
+  </Card>
+  
+  <Card title="Item Layout" icon="square">
+    Each item uses `R.layout.principal` layout inflated by the adapter.
+  </Card>
+</CardGroup>
+
+## Usage Example
+
+<CodeGroup>
+
+```xml AndroidManifest.xml
+<activity
+    android:name=".MainActivity"
+    android:exported="true">
+    <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+    </intent-filter>
+</activity>
+```
+
+```java Launching MainActivity
+// MainActivity is typically the launcher activity
+// and starts automatically when the app opens.
+
+// To start it programmatically from another activity:
+Intent intent = new Intent(context, MainActivity.class);
+startActivity(intent);
+```
+
+```java Testing Firebase connection
+// In onCreate, after setting up the listener:
+reference.get().addOnCompleteListener(task -> {
+    if (task.isSuccessful()) {
+        Log.d("MainActivity", "Firebase connected successfully");
+        Log.d("MainActivity", "Entries count: " + task.getResult().getChildrenCount());
+    } else {
+        Log.e("MainActivity", "Error loading data", task.getException());
+    }
+});
+```
+
+</CodeGroup>
+
+## Error Handling
+
+<Expandable title="Firebase Error Handling">
+  When Firebase fails to load data (network issues, permission errors, etc.):
+  
+  ```java
+  @Override
+  public void onCancelled(@NonNull DatabaseError error) {
+      Toast.makeText(MainActivity.this, "Algo ha fallado", Toast.LENGTH_SHORT).show();
+  }
+  ```
+  
+  **Common causes:**
+  - No internet connection
+  - Firebase rules denying read access
+  - Invalid database URL
+  - Authentication issues (if rules require auth)
+</Expandable>
+
+<Expandable title="Data Duplication Prevention">
+  The activity clears the list before adding new data to prevent duplicates when Firebase sends updates:
+  
+  ```java
+  listaElementos.clear(); // Evita duplicación de datos cuando Firebase notifica cambios
+  ```
+  
+  This is important because `ValueEventListener` fires whenever data changes, not just on initial load.
+</Expandable>
+
+## Lifecycle Considerations
+
+<Warning>
+The `ValueEventListener` remains active even when the activity is in the background. Consider removing the listener in `onStop()` or `onDestroy()` if you want to save resources:
+
+```java
+@Override
+protected void onDestroy() {
+    super.onDestroy();
+    if (reference != null && valueEventListener != null) {
+        reference.removeEventListener(valueEventListener);
+    }
+}
+```
+</Warning>
+
+## Dependencies
+
+Required dependencies in `build.gradle`:
+
+```gradle
+dependencies {
+    // AndroidX
+    implementation 'androidx.appcompat:appcompat:1.x.x'
+    implementation 'androidx.recyclerview:recyclerview:1.x.x'
+    
+    // Firebase
+    implementation platform('com.google.firebase:firebase-bom:32.x.x')
+    implementation 'com.google.firebase:firebase-database'
+    
+    // Material Design
+    implementation 'com.google.android.material:material:1.x.x'
+}
+```
+
+## Related Classes
+
+- [Elementos](/api/elementos) - Data model for encyclopedia entries
+- [Adaptador](/api/adaptador) - RecyclerView adapter for displaying entries
+- [Secundaria](/api/secundaria) - Secondary activity for sub-categories
+- [Tiempo](/api/tiempo) - Weather information activity

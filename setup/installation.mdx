@@ -1,0 +1,306 @@
+---
+title: 'Installation'
+description: 'Step-by-step guide to install and set up HuelvaPedia Android app'
+---
+
+## Overview
+
+This guide walks you through cloning the HuelvaPedia repository, opening it in Android Studio, and preparing it for development. Ensure you've met all [prerequisites](/setup/prerequisites) before proceeding.
+
+<Note>
+The installation process takes approximately 10-15 minutes, depending on your internet speed for downloading dependencies.
+</Note>
+
+## Clone the Repository
+
+<Steps>
+  <Step title="Open Terminal">
+    Open your terminal or command prompt and navigate to your desired workspace directory.
+    
+    ```bash
+    cd ~/workspace
+    ```
+  </Step>
+  
+  <Step title="Clone Repository">
+    Clone the HuelvaPedia repository from GitHub:
+    
+    ```bash
+    git clone https://github.com/JuancaCalvino/HuelvaPedia.git
+    ```
+    
+    This downloads the complete project source code to your local machine.
+  </Step>
+  
+  <Step title="Navigate to Project">
+    Change into the project directory:
+    
+    ```bash
+    cd HuelvaPedia
+    ```
+  </Step>
+</Steps>
+
+## Open Project in Android Studio
+
+<Steps>
+  <Step title="Launch Android Studio">
+    Open Android Studio. If you see the welcome screen, proceed to the next step. If you have another project open, go to `File > Close Project` to return to the welcome screen.
+  </Step>
+  
+  <Step title="Open the Project">
+    From the welcome screen, click **Open** or select `File > Open...` from the menu bar.
+    
+    Navigate to the HuelvaPedia directory you cloned and click **OK**.
+  </Step>
+  
+  <Step title="Wait for Initial Indexing">
+    Android Studio will begin indexing the project files. Wait for this process to complete before proceeding. You'll see progress indicators in the bottom status bar.
+  </Step>
+</Steps>
+
+<Tip>
+The first time you open the project, Android Studio may prompt you to trust the Gradle project. Click **Trust Project** to continue.
+</Tip>
+
+## Project Structure Overview
+
+After opening the project, you'll see the following structure:
+
+```
+HuelvaPedia/
+├── app/
+│   ├── src/
+│   │   ├── main/
+│   │   │   ├── java/com/example/huelvapedia/
+│   │   │   ├── res/
+│   │   │   └── AndroidManifest.xml
+│   │   └── test/
+│   ├── build.gradle          # App-level build configuration
+│   └── google-services.json  # ⚠️ Missing - must be configured
+├── gradle/
+│   └── wrapper/
+├── build.gradle              # Project-level build configuration
+├── gradle.properties         # Gradle JVM and build settings
+└── settings.gradle
+```
+
+<Warning>
+The `google-services.json` file will be missing. This is intentional for security reasons. You must configure Firebase before the app will build. See [Firebase Configuration](/setup/firebase-configuration).
+</Warning>
+
+## Gradle Sync
+
+<Steps>
+  <Step title="Automatic Gradle Sync">
+    Android Studio should automatically trigger a Gradle sync when you open the project. If it doesn't, click the **Sync Project with Gradle Files** button in the toolbar (elephant icon with a blue arrow).
+  </Step>
+  
+  <Step title="Monitor Sync Progress">
+    Watch the Build output panel at the bottom of Android Studio. The sync process will:
+    
+    - Download Gradle wrapper (if needed)
+    - Download project dependencies
+    - Configure build variants
+    - Generate build files
+  </Step>
+  
+  <Step title="Handle Sync Errors">
+    If Gradle sync fails, it's likely due to the missing `google-services.json` file. This is expected. You'll resolve this in the Firebase Configuration step.
+  </Step>
+</Steps>
+
+<Note>
+The initial Gradle sync may take 5-10 minutes as it downloads all required dependencies including AndroidX libraries, Firebase SDK, Volley, and Picasso.
+</Note>
+
+## Dependencies Overview
+
+The project uses the following key dependencies (from app/build.gradle):
+
+### Core Android Libraries
+
+```gradle
+implementation 'androidx.appcompat:appcompat:1.2.0'
+implementation 'com.google.android.material:material:1.3.0'
+implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
+```
+
+### Firebase
+
+```gradle
+implementation 'com.google.firebase:firebase-database:19.7.0'
+```
+
+### Networking & Image Loading
+
+```gradle
+implementation 'com.android.volley:volley:1.2.1'
+implementation 'com.squareup.picasso:picasso:2.8'
+```
+
+### UI Components
+
+```gradle
+implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+implementation "androidx.cardview:cardview:1.0.0"
+```
+
+### Build Plugins
+
+```gradle
+classpath 'com.android.tools.build:gradle:7.4.2'
+classpath 'com.google.gms:google-services:4.3.15'
+```
+
+<Accordion title="Understanding the Dependencies">
+  - **androidx.appcompat** - Backward compatibility for modern Android features
+  - **material** - Material Design components for modern UI
+  - **constraintlayout** - Flexible layout system for complex UIs
+  - **firebase-database** - Firebase Realtime Database client
+  - **volley** - HTTP library for network requests (used for weather API)
+  - **picasso** - Image loading and caching library
+  - **cardview** - Material Design card components
+  - **google-services** - Gradle plugin for Firebase integration
+</Accordion>
+
+## Verify Build Configuration
+
+Before proceeding, verify your build configuration:
+
+<CodeGroup>
+
+```gradle app/build.gradle
+android {
+    compileSdkVersion 30
+    buildToolsVersion "30.0.3"
+
+    defaultConfig {
+        applicationId "com.example.huelvapedia"
+        minSdkVersion 27
+        targetSdkVersion 30
+        versionCode 1
+        versionName "1.0"
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    namespace 'com.example.huelvapedia'
+}
+```
+
+```gradle build.gradle (Project)
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.4.2'
+        classpath 'com.google.gms:google-services:4.3.15'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+```
+
+```properties gradle.properties
+org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+android.useAndroidX=true
+android.enableJetifier=true
+```
+
+</CodeGroup>
+
+## Application Configuration
+
+Review the AndroidManifest.xml configuration:
+
+```xml AndroidManifest.xml
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_escudohuelva"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_escudohuelva"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.HuelvaPedia"
+        android:networkSecurityConfig="@xml/network_security_config">
+        <!-- Activities configuration -->
+    </application>
+</manifest>
+```
+
+Key points:
+- **Package name:** `com.example.huelvapedia` (must match Firebase configuration)
+- **Permissions:** Internet and network state access required
+- **App icon:** Custom Huelva coat of arms icon
+- **Network security:** Custom configuration for secure connections
+
+## Common Installation Issues
+
+<Accordion title="Gradle Sync Failed - Missing google-services.json">
+  **Solution:** This is expected. The `google-services.json` file is not included in the repository for security reasons. Follow the [Firebase Configuration](/setup/firebase-configuration) guide to add your own Firebase configuration.
+</Accordion>
+
+<Accordion title="SDK Not Found - Android SDK 30">
+  **Solution:** Open `Tools > SDK Manager` in Android Studio and install Android 11.0 (R) - API Level 30 under the SDK Platforms tab.
+</Accordion>
+
+<Accordion title="Build Tools Version Not Found">
+  **Solution:** Open `Tools > SDK Manager`, go to the SDK Tools tab, and install Android SDK Build-Tools 30.0.3 or higher.
+</Accordion>
+
+<Accordion title="Gradle JVM Version Error">
+  **Solution:** Go to `File > Settings > Build, Execution, Deployment > Build Tools > Gradle` and ensure the Gradle JVM is set to JDK 11 or higher.
+</Accordion>
+
+<Accordion title="Dependencies Download Failed">
+  **Solution:** Check your internet connection. Try invalidating caches via `File > Invalidate Caches > Invalidate and Restart`.
+</Accordion>
+
+## Verify Installation
+
+<Steps>
+  <Step title="Check Project Structure">
+    Verify that the project structure appears correctly in the Project panel (View > Tool Windows > Project).
+  </Step>
+  
+  <Step title="Check Gradle Build Output">
+    Open the Build output panel and confirm there are no critical errors (warnings about missing google-services.json are expected).
+  </Step>
+  
+  <Step title="Verify Java Version">
+    Check that the project is using the correct Java version:
+    - Go to `File > Project Structure > SDK Location`
+    - Ensure JDK 11 or higher is selected
+  </Step>
+</Steps>
+
+## Next Steps
+
+<Warning>
+You cannot build or run the app yet without Firebase configuration. The `google-services.json` file is required.
+</Warning>
+
+Now that you've successfully installed HuelvaPedia, proceed to [Firebase Configuration](/setup/firebase-configuration) to:
+
+1. Create a Firebase project
+2. Register your Android app
+3. Download and add the `google-services.json` file
+4. Set up Firebase Realtime Database
+5. Build and run the app
+
+Once Firebase is configured, you'll be able to build and run HuelvaPedia on an emulator or physical device.

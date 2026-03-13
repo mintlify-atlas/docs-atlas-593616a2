@@ -1,0 +1,335 @@
+---
+title: 'Adaptador'
+description: 'RecyclerView adapter for displaying encyclopedia entries'
+---
+
+## Overview
+
+The `Adaptador` class is a custom `RecyclerView.Adapter` that manages the display of encyclopedia entries (`Elementos` objects) in the HuelvaPedia app. It handles view binding, click events, and conditional UI display based on entry properties.
+
+<Note>
+This adapter implements `View.OnClickListener` to handle item click events and supports both navigation items and actionable items with buttons.
+</Note>
+
+## Class Declaration
+
+```java
+package com.example.huelvapedia;
+
+public class Adaptador extends RecyclerView.Adapter<Adaptador.MiViewHolder> 
+    implements View.OnClickListener
+```
+
+**Extends:** `RecyclerView.Adapter<Adaptador.MiViewHolder>`
+
+**Implements:** `View.OnClickListener`
+
+## Fields
+
+<ResponseField name="context" type="Context" access="private">
+Application context used for inflating layouts and starting activities.
+</ResponseField>
+
+<ResponseField name="elementos" type="ArrayList<Elementos>" access="private">
+List of encyclopedia entries to display in the RecyclerView.
+</ResponseField>
+
+<ResponseField name="listener" type="View.OnClickListener" access="private">
+Custom click listener that can be set externally for handling item clicks.
+</ResponseField>
+
+## Constructor
+
+```java
+public Adaptador(Context context, ArrayList<Elementos> elementos)
+```
+
+Creates a new adapter instance for displaying encyclopedia entries.
+
+<ParamField path="context" type="Context">
+The application context
+</ParamField>
+
+<ParamField path="elementos" type="ArrayList<Elementos>">
+The list of encyclopedia entries to display
+</ParamField>
+
+**Example:**
+```java
+ArrayList<Elementos> listaElementos = new ArrayList<>();
+Adaptador adaptador = new Adaptador(MainActivity.this, listaElementos);
+recyclerView.setAdapter(adaptador);
+```
+
+## Methods
+
+### onCreateViewHolder
+
+```java
+@NonNull
+@Override
+public MiViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType)
+```
+
+Creates a new `ViewHolder` instance by inflating the item layout.
+
+<ParamField path="parent" type="ViewGroup">
+The parent ViewGroup into which the new view will be added
+</ParamField>
+
+<ParamField path="viewType" type="int">
+The view type of the new view
+</ParamField>
+
+**Returns:** `MiViewHolder` - A new ViewHolder that holds the item view
+
+**Implementation details:**
+- Inflates `R.layout.principal` layout
+- Sets click listener on the inflated view
+- Returns a new `MiViewHolder` instance
+
+---
+
+### onBindViewHolder
+
+```java
+@Override
+public void onBindViewHolder(@NonNull MiViewHolder holder, int position)
+```
+
+Binds data from an `Elementos` object to the ViewHolder at the specified position. This method handles all the UI logic including:
+- Setting text and images
+- Showing/hiding action buttons
+- Configuring click listeners based on entry type
+
+<ParamField path="holder" type="MiViewHolder">
+The ViewHolder to bind data to
+</ParamField>
+
+<ParamField path="position" type="int">
+The position of the item in the data set
+</ParamField>
+
+**Behavior:**
+
+<Tabs>
+  <Tab title="Navigation Items (ultimo = false)">
+    When `elemento.getUltimo()` returns `false`:
+    - Hides all action buttons (location, phone, link)
+    - Sets up click listener to navigate to `Secundaria` activity
+    - Passes the entry name as an intent extra
+  </Tab>
+  
+  <Tab title="Action Items (ultimo = true)">
+    When `elemento.getUltimo()` returns `true`:
+    - Displays action buttons based on available data
+    - **Location button**: Opens map with the location if `ubicacion1` and `ubicacion2` are set
+    - **Phone button**: Opens dialer if `telefono` is set
+    - **Link button**: Opens web browser if `enlace` is set
+    - Hides buttons for unavailable actions
+  </Tab>
+</Tabs>
+
+**Example:**
+```java
+// This method is called automatically by RecyclerView
+// when an item needs to be displayed or updated
+```
+
+---
+
+### getItemCount
+
+```java
+@Override
+public int getItemCount()
+```
+
+Returns the total number of items in the data set.
+
+**Returns:** `int` - The size of the `elementos` list
+
+---
+
+### setOnClickListener
+
+```java
+public void setOnClickListener(View.OnClickListener listener)
+```
+
+Sets a custom click listener for item clicks.
+
+<ParamField path="listener" type="View.OnClickListener">
+The click listener to set
+</ParamField>
+
+**Example:**
+```java
+adaptador.setOnClickListener(v -> {
+    int position = recyclerView.getChildAdapterPosition(v);
+    Elementos elemento = listaElementos.get(position);
+    Log.d("Clicked", elemento.getNombre());
+});
+```
+
+---
+
+### onClick
+
+```java
+@Override
+public void onClick(View v)
+```
+
+Handles click events on item views. Delegates to the custom listener if set.
+
+<ParamField path="v" type="View">
+The view that was clicked
+</ParamField>
+
+## Inner Class: MiViewHolder
+
+The `MiViewHolder` class is a static inner class that holds references to the views for each item in the RecyclerView.
+
+```java
+static class MiViewHolder extends RecyclerView.ViewHolder
+```
+
+### ViewHolder Fields
+
+<ResponseField name="nombre" type="TextView">
+Displays the entry name (bound to `R.id.tenombre`)
+</ResponseField>
+
+<ResponseField name="descripcion" type="TextView">
+Displays the entry description (bound to `R.id.tedescri`)
+</ResponseField>
+
+<ResponseField name="imagen" type="ImageView">
+Displays the entry photo (bound to `R.id.imagen`)
+</ResponseField>
+
+<ResponseField name="botonUbicacion" type="Button">
+Button for opening location in maps (bound to `R.id.botonubi`)
+</ResponseField>
+
+<ResponseField name="botonLlamar" type="Button">
+Button for initiating phone call (bound to `R.id.botonllamar`)
+</ResponseField>
+
+<ResponseField name="botonEnlace" type="Button">
+Button for opening web link (bound to `R.id.botonwiki`)
+</ResponseField>
+
+### ViewHolder Constructor
+
+```java
+public MiViewHolder(@NonNull View itemView)
+```
+
+Initializes the ViewHolder and binds all view references.
+
+<ParamField path="itemView" type="View">
+The root view of the item layout
+</ParamField>
+
+## Usage Examples
+
+<CodeGroup>
+
+```java Basic adapter setup
+// In your Activity or Fragment
+RecyclerView recyclerView = findViewById(R.id.recicler);
+recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+ArrayList<Elementos> listaElementos = new ArrayList<>();
+Adaptador adaptador = new Adaptador(this, listaElementos);
+recyclerView.setAdapter(adaptador);
+```
+
+```java With Firebase data loading
+reference.addValueEventListener(new ValueEventListener() {
+    @Override
+    public void onDataChange(@NonNull DataSnapshot snapshot) {
+        listaElementos.clear();
+        for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
+            Elementos elemento = dataSnapshot.getValue(Elementos.class);
+            listaElementos.add(elemento);
+        }
+        adaptador = new Adaptador(MainActivity.this, listaElementos);
+        recyclerView.setAdapter(adaptador);
+    }
+    
+    @Override
+    public void onCancelled(@NonNull DatabaseError error) {
+        Toast.makeText(MainActivity.this, "Error loading data", Toast.LENGTH_SHORT).show();
+    }
+});
+```
+
+```java Custom click listener
+Adaptador adaptador = new Adaptador(this, listaElementos);
+adaptador.setOnClickListener(v -> {
+    int position = recyclerView.getChildAdapterPosition(v);
+    if (position != RecyclerView.NO_POSITION) {
+        Elementos elemento = listaElementos.get(position);
+        Log.d("HuelvaPedia", "Clicked: " + elemento.getNombre());
+    }
+});
+recyclerView.setAdapter(adaptador);
+```
+
+</CodeGroup>
+
+## Action Button Behavior
+
+The adapter handles three types of action buttons for final entries:
+
+<Expandable title="Location Button (Map)">
+  When both `ubicacion1` and `ubicacion2` are available:
+  ```java
+  // Opens map application with the location
+  Intent intent = new Intent(Intent.ACTION_VIEW);
+  intent.setData(Uri.parse(elemento.getUbicacion1() + Uri.encode(elemento.getUbicacion2())));
+  Intent chooser = Intent.createChooser(intent, "Launch Maps");
+  v.getContext().startActivity(chooser);
+  ```
+</Expandable>
+
+<Expandable title="Phone Button (Dialer)">
+  When `telefono` is available:
+  ```java
+  // Opens phone dialer with the number
+  Intent intent = new Intent(Intent.ACTION_DIAL);
+  intent.setData(Uri.parse("tel:" + elemento.getTelefono()));
+  v.getContext().startActivity(intent);
+  ```
+</Expandable>
+
+<Expandable title="Link Button (Web Browser)">
+  When `enlace` is available:
+  ```java
+  // Opens web browser with the URL
+  Uri link = Uri.parse(elemento.getEnlace());
+  Intent intent = new Intent(Intent.ACTION_VIEW, link);
+  v.getContext().startActivity(intent);
+  ```
+</Expandable>
+
+## Dependencies
+
+This class uses the following external libraries:
+
+- **AndroidX RecyclerView**: For list display
+- **Picasso**: For image loading from URLs
+
+```gradle
+implementation 'androidx.recyclerview:recyclerview:1.x.x'
+implementation 'com.squareup.picasso:picasso:2.x.x'
+```
+
+## Related Classes
+
+- [Elementos](/api/elementos) - Data model class for entries
+- [MainActivity](/api/main-activity) - Uses this adapter to display main categories
+- [Secundaria](/api/secundaria) - Uses this adapter to display sub-categories

@@ -1,0 +1,538 @@
+---
+title: "Activities"
+description: "Core activities that handle navigation and user interface in HuelvaPedia"
+---
+
+HuelvaPedia uses four main activities to manage the app's navigation flow, from splash screen to content display and weather information.
+
+## MainActivity
+
+The main entry point of the app that displays the primary encyclopedia topics from Firebase.
+
+### Purpose
+
+MainActivity serves as the home screen of HuelvaPedia, showing a scrollable list of main topics about Huelva. It connects to Firebase Realtime Database to fetch and display content dynamically.
+
+### Class Structure
+
+<ParamField path="reference" type="DatabaseReference">
+  Firebase reference pointing to the "principal" node
+</ParamField>
+
+<ParamField path="recyclerView" type="RecyclerView">
+  Displays the list of encyclopedia topics
+</ParamField>
+
+<ParamField path="listaElementos" type="ArrayList<Elementos>">
+  Contains all the data elements fetched from Firebase
+</ParamField>
+
+<ParamField path="adaptador" type="Adaptador">
+  Custom RecyclerView adapter for binding data to views
+</ParamField>
+
+<ParamField path="botonTiempo" type="Button">
+  Button that navigates to the weather activity
+</ParamField>
+
+### Lifecycle
+
+<CodeGroup>
+
+```java onCreate
+@Override
+protected void onCreate(Bundle savedInstanceState)
+{
+    super.onCreate(savedInstanceState);
+    setContentView(R.layout.activity_main);
+
+    botonTiempo = findViewById(R.id.botontiempo);
+
+    ActionBar actionBar = getSupportActionBar();
+    actionBar.setIcon(R.mipmap.ic_escudohuelva);
+    actionBar.setDisplayShowHomeEnabled(true);
+
+    recyclerView = findViewById(R.id.recicler);
+    recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+    listaElementos = new ArrayList<>();
+
+    reference = FirebaseDatabase.getInstance().getReference().child("principal");
+
+    reference.addValueEventListener(new ValueEventListener()
+    {
+        @Override
+        public void onDataChange(@NonNull DataSnapshot snapshot)
+        {
+            listaElementos.clear(); // Evita duplicación de datos cuando Firebase notifica cambios
+            for (DataSnapshot dataSnapshot : snapshot.getChildren())
+            {
+                Elementos elemento = dataSnapshot.getValue(Elementos.class);
+                listaElementos.add(elemento);
+            }
+            adaptador = new Adaptador(MainActivity.this, listaElementos);
+            recyclerView.setAdapter(adaptador);
+        }
+
+        @Override
+        public void onCancelled(@NonNull DatabaseError error)
+        {
+            Toast.makeText(MainActivity.this, "Algo ha fallado", Toast.LENGTH_SHORT).show();
+        }
+    });
+
+    botonTiempo.setOnClickListener(v -> {
+        Intent intent = new Intent(v.getContext(), Tiempo.class);
+        startActivity(intent);
+    });
+}
+```
+
+</CodeGroup>
+
+### Key Features
+
+- **Firebase Integration**: Listens for real-time updates from the "principal" database node
+- **Action Bar Customization**: Displays the Huelva shield icon in the app bar
+- **Weather Navigation**: Provides quick access to weather information via button
+- **Data Deduplication**: Clears the list before updating to prevent duplicate entries
+
+---
+
+## Secundaria
+
+A secondary activity that displays subtopics based on the selected main topic from MainActivity.
+
+### Purpose
+
+Secundaria handles hierarchical navigation by showing detailed content for a selected topic. It receives the topic name from MainActivity and queries the corresponding Firebase node.
+
+### Class Structure
+
+<ParamField path="reference" type="DatabaseReference">
+  Firebase reference pointing to a dynamically determined node based on the selected topic
+</ParamField>
+
+<ParamField path="recyclerView" type="RecyclerView">
+  Displays the subtopic elements
+</ParamField>
+
+<ParamField path="listaElementos" type="ArrayList<Elementos>">
+  Contains subtopic data from Firebase
+</ParamField>
+
+<ParamField path="adaptador" type="Adaptador">
+  Reuses the same Adaptador class for consistency
+</ParamField>
+
+<ParamField path="botonTiempo" type="Button">
+  Weather button (hidden in this activity)
+</ParamField>
+
+### Lifecycle
+
+<CodeGroup>
+
+```java onCreate
+@Override
+protected void onCreate(Bundle savedInstanceState)
+{
+    super.onCreate(savedInstanceState);
+    setContentView(R.layout.activity_main);
+
+    botonTiempo = findViewById(R.id.botontiempo);
+    botonTiempo.setVisibility(View.GONE); // Oculta el botón del tiempo en los subtemas
+
+    ActionBar actionBar = getSupportActionBar();
+    actionBar.setIcon(R.mipmap.ic_escudohuelva);
+    actionBar.setDisplayShowHomeEnabled(true);
+
+    recyclerView = findViewById(R.id.recicler);
+    recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+    listaElementos = new ArrayList<>();
+
+    // Recibe el nombre del tema anterior y lo normaliza para buscar su referencia en Firebase
+    Intent intent = getIntent();
+    String nombreReferencia = intent.getStringExtra("Nombre")
+            .replace(" ", "")
+            .toLowerCase();
+
+    reference = FirebaseDatabase.getInstance().getReference().child(nombreReferencia);
+
+    reference.addValueEventListener(new ValueEventListener()
+    {
+        @Override
+        public void onDataChange(@NonNull DataSnapshot snapshot)
+        {
+            listaElementos.clear(); // Evita duplicación de datos cuando Firebase notifica cambios
+            for (DataSnapshot dataSnapshot : snapshot.getChildren())
+            {
+                Elementos elemento = dataSnapshot.getValue(Elementos.class);
+                listaElementos.add(elemento);
+            }
+            adaptador = new Adaptador(Secundaria.this, listaElementos);
+            recyclerView.setAdapter(adaptador);
+        }
+
+        @Override
+        public void onCancelled(@NonNull DatabaseError error)
+        {
+            Toast.makeText(Secundaria.this, "Algo ha fallado", Toast.LENGTH_SHORT).show();
+        }
+    });
+}
+```
+
+</CodeGroup>
+
+### Key Features
+
+- **Dynamic Database Query**: Normalizes topic names (removes spaces, converts to lowercase) for Firebase queries
+- **Intent Data**: Receives the "Nombre" extra from the previous activity
+- **Hidden Weather Button**: Intentionally hides the weather button since it only appears on the main screen
+- **Reused Layout**: Uses the same XML layout as MainActivity for consistency
+
+<Note>
+The Secundaria activity reuses the `activity_main` layout but hides the weather button to maintain UI consistency while adapting to the secondary navigation level.
+</Note>
+
+---
+
+## PantallaCarga
+
+The splash screen activity that checks internet connectivity before launching the main app.
+
+### Purpose
+
+PantallaCarga serves as the app's entry point, displaying a loading animation while verifying that the device has an active internet connection. This is essential since HuelvaPedia requires Firebase connectivity.
+
+### Class Structure
+
+<ParamField path="DURACION_CARGA" type="static final int">
+  Constant defining the splash screen duration: 5000ms (5 seconds)
+</ParamField>
+
+<ParamField path="animacionSuperior" type="Animation">
+  Top animation for the logo
+</ParamField>
+
+<ParamField path="animacionInferior" type="Animation">
+  Bottom animation for text and progress bar
+</ParamField>
+
+<ParamField path="imagenLogo" type="ImageView">
+  Displays the HuelvaPedia logo
+</ParamField>
+
+<ParamField path="textoCarga" type="TextView">
+  Loading text
+</ParamField>
+
+<ParamField path="sloganCarga" type="TextView">
+  App slogan text
+</ParamField>
+
+<ParamField path="progressBar" type="ProgressBar">
+  Indeterminate progress indicator
+</ParamField>
+
+<ParamField path="hayConexion" type="boolean">
+  Flag tracking internet connectivity status
+</ParamField>
+
+<ParamField path="monitorizando" type="boolean">
+  Flag indicating if connectivity monitoring is active
+</ParamField>
+
+<ParamField path="handler" type="Handler">
+  Handler for delayed navigation to MainActivity
+</ParamField>
+
+### Connectivity Management
+
+<Tabs>
+  <Tab title="Connectivity Check">
+    ```java
+    private void checkConnectivity()
+    {
+        final ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        final NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+
+        hayConexion = activeNetworkInfo != null && activeNetworkInfo.isConnectedOrConnecting();
+
+        if (hayConexion)
+        {
+            handler.postDelayed(navegarAPrincipal, DURACION_CARGA);
+        }
+        else
+        {
+            Toast.makeText(PantallaCarga.this, "SE DEBE DISPONER DE CONEXIÓN A INTERNET", Toast.LENGTH_LONG).show();
+            connectivityManager.registerNetworkCallback(
+                    new NetworkRequest.Builder()
+                            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                            .build(), connectivityCallback);
+            monitorizando = true;
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="Network Callback">
+    ```java
+    private final ConnectivityManager.NetworkCallback connectivityCallback = new ConnectivityManager.NetworkCallback()
+    {
+        @Override
+        public void onAvailable(Network network)
+        {
+            hayConexion = true;
+            handler.postDelayed(navegarAPrincipal, DURACION_CARGA);
+        }
+
+        @Override
+        public void onLost(Network network)
+        {
+            hayConexion = false;
+            Toast.makeText(PantallaCarga.this, "SE DEBE DISPONER DE CONEXIÓN A INTERNET", Toast.LENGTH_LONG).show();
+        }
+    };
+    ```
+  </Tab>
+  <Tab title="Navigation">
+    ```java
+    private final Runnable navegarAPrincipal = () -> {
+        Intent intent = new Intent(PantallaCarga.this, MainActivity.class);
+        startActivity(intent);
+        finish();
+    };
+    ```
+  </Tab>
+</Tabs>
+
+### Lifecycle Methods
+
+<CodeGroup>
+
+```java onCreate
+@Override
+protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+    setContentView(R.layout.activity_pantalla_carga);
+    getSupportActionBar().hide();
+
+    animacionSuperior = AnimationUtils.loadAnimation(this, R.anim.top_animation);
+    animacionInferior = AnimationUtils.loadAnimation(this, R.anim.bottom_animation);
+
+    imagenLogo = findViewById(R.id.imagenlogo);
+    textoCarga = findViewById(R.id.textocarga);
+    sloganCarga = findViewById(R.id.slogancarga);
+    progressBar = findViewById(R.id.progressBar);
+
+    progressBar.getIndeterminateDrawable().setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN);
+
+    imagenLogo.setAnimation(animacionSuperior);
+    textoCarga.setAnimation(animacionInferior);
+    sloganCarga.setAnimation(animacionInferior);
+    progressBar.setAnimation(animacionInferior);
+
+    checkConnectivity();
+}
+```
+
+```java onPause
+@Override
+protected void onPause() {
+    if (monitorizando) {
+        final ConnectivityManager connectivityManager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        connectivityManager.unregisterNetworkCallback(connectivityCallback);
+        monitorizando = false;
+    }
+    super.onPause();
+}
+```
+
+```java onDestroy
+@Override
+protected void onDestroy() {
+    handler.removeCallbacksAndMessages(null); // Cancela callbacks pendientes para evitar memory leaks
+    super.onDestroy();
+}
+```
+
+</CodeGroup>
+
+### Key Features
+
+- **Fullscreen Mode**: Hides the status bar and action bar for an immersive splash screen
+- **Animation System**: Applies top and bottom animations to different UI elements
+- **Network Monitoring**: Registers a network callback if no connection is initially detected
+- **Memory Leak Prevention**: Properly unregisters callbacks and clears handler messages
+- **White Progress Bar**: Applies a color filter to make the progress indicator white
+
+<Note>
+PantallaCarga properly manages the network callback lifecycle by unregistering in `onPause()` and clearing handler messages in `onDestroy()` to prevent memory leaks.
+</Note>
+
+---
+
+## Tiempo
+
+Weather information activity that fetches and displays current weather data for Huelva using the OpenWeatherMap API.
+
+### Purpose
+
+Tiempo provides real-time weather information specifically for Huelva, Spain. It uses the Volley library to make HTTP requests to OpenWeatherMap and displays weather details with translated descriptions.
+
+### Class Structure
+
+<ParamField path="URL_BASE" type="static final String">
+  Base URL for OpenWeatherMap API: "http://api.openweathermap.org/data/2.5/weather"
+</ParamField>
+
+<ParamField path="API_KEY" type="static final String">
+  OpenWeatherMap API key (note: should be moved to local.properties)
+</ParamField>
+
+<ParamField path="tvTemperatura" type="TextView">
+  Displays current temperature in Celsius
+</ParamField>
+
+<ParamField path="tvDescripcion" type="TextView">
+  Shows weather description (translated to Spanish)
+</ParamField>
+
+<ParamField path="tvSensacion" type="TextView">
+  Displays "feels like" temperature
+</ParamField>
+
+<ParamField path="tvPresion" type="TextView">
+  Shows atmospheric pressure in hPa
+</ParamField>
+
+<ParamField path="tvHumedad" type="TextView">
+  Displays humidity percentage
+</ParamField>
+
+<ParamField path="tvNubes" type="TextView">
+  Shows cloud coverage percentage
+</ParamField>
+
+<ParamField path="tvViento" type="TextView">
+  Displays wind speed in m/s
+</ParamField>
+
+<ParamField path="imagenDelTiempo" type="ImageView">
+  Shows weather condition icon
+</ParamField>
+
+<ParamField path="formatoDecimal" type="DecimalFormat">
+  Formats temperatures with one decimal place
+</ParamField>
+
+### API Integration
+
+<CodeGroup>
+
+```java API Request
+String urlCompleta = URL_BASE + "?q=Huelva,ES&appid=" + API_KEY;
+
+StringRequest stringRequest = new StringRequest(Request.Method.POST, urlCompleta,
+        response -> {
+            try
+            {
+                JSONObject jsonResponse = new JSONObject(response);
+                JSONArray jsonArray = jsonResponse.getJSONArray("weather");
+                JSONObject jsonObjectWeather = jsonArray.getJSONObject(0);
+                String descripcion = jsonObjectWeather.getString("description");
+                JSONObject jsonObjectMain = jsonResponse.getJSONObject("main");
+                double temp = jsonObjectMain.getDouble("temp") - 273.15;
+                double sensacion = jsonObjectMain.getDouble("feels_like") - 273.15;
+                float presion = jsonObjectMain.getInt("pressure");
+                int humedad = jsonObjectMain.getInt("humidity");
+                JSONObject jsonObjectWind = jsonResponse.getJSONObject("wind");
+                String viento = jsonObjectWind.getString("speed");
+                JSONObject jsonObjectClouds = jsonResponse.getJSONObject("clouds");
+                String nubes = jsonObjectClouds.getString("all");
+
+                traducirDescripcion(descripcion);
+
+                tvTemperatura.setText(formatoDecimal.format(temp) + "ºC");
+                tvSensacion.setText("Sensacion térmica: " + formatoDecimal.format(sensacion) + "ºC");
+                tvHumedad.setText("Humedad: " + humedad + "%");
+                tvNubes.setText("Cantidad de nubes: " + nubes + "%");
+                tvViento.setText("Velocidad del viento: " + viento + "m/s (metros por segundo)");
+                tvPresion.setText("Presión atmosférica: " + presion + " hPa");
+            }
+            catch (JSONException e)
+            {
+                e.printStackTrace();
+            }
+        },
+        error -> Toast.makeText(getApplicationContext(), error.toString().trim(), Toast.LENGTH_SHORT).show()
+);
+
+RequestQueue requestQueue = Volley.newRequestQueue(getApplicationContext());
+requestQueue.add(stringRequest);
+```
+
+</CodeGroup>
+
+### Weather Translation
+
+The `traducirDescripcion()` method translates English weather descriptions to Spanish and sets the appropriate weather icon:
+
+<Tabs>
+  <Tab title="Clear/Cloudy">
+    ```java
+    case "clear sky":
+        tvDescripcion.setText("Despejado");
+        imagenDelTiempo.setImageResource(R.mipmap.ic_soleado);
+        break;
+    case "few clouds":
+        tvDescripcion.setText("Ligeramente nublado");
+        imagenDelTiempo.setImageResource(R.mipmap.ic_ligeramentenublado);
+        break;
+    case "scattered clouds":
+        tvDescripcion.setText("Nubes dispersas");
+        imagenDelTiempo.setImageResource(R.mipmap.ic_nubesdispersas);
+        break;
+    case "overcast clouds":
+        tvDescripcion.setText("Nublado");
+        imagenDelTiempo.setImageResource(R.mipmap.ic_nublado);
+        break;
+    case "broken clouds":
+        tvDescripcion.setText("Nubes rotas");
+        imagenDelTiempo.setImageResource(R.mipmap.ic_nubesrotas);
+        break;
+    ```
+  </Tab>
+  <Tab title="Rain">
+    ```java
+    case "light rain":
+        tvDescripcion.setText("Lluvia ligera");
+        imagenDelTiempo.setImageResource(R.mipmap.ic_lluvialigera);
+        break;
+    case "moderate rain":
+        tvDescripcion.setText("Lluvia moderada");
+        imagenDelTiempo.setImageResource(R.mipmap.ic_lluviamoderada);
+        break;
+    case "heavy intensity rain":
+        tvDescripcion.setText("Lluvia pesada");
+        imagenDelTiempo.setImageResource(R.mipmap.ic_lluviafuerte);
+        break;
+    ```
+  </Tab>
+</Tabs>
+
+### Key Features
+
+- **Kelvin to Celsius Conversion**: Automatically converts temperature from Kelvin (API default) to Celsius
+- **Localized Content**: Translates weather descriptions from English to Spanish
+- **Visual Feedback**: Shows weather-specific icons based on current conditions
+- **Comprehensive Data**: Displays temperature, feels-like, pressure, humidity, clouds, and wind speed
+- **Error Handling**: Shows toast messages if the API request fails
+
+<Note>
+The code includes a TODO comment recommending moving the API key to `local.properties` and accessing it via `BuildConfig` to avoid exposing it in the source code.
+</Note>

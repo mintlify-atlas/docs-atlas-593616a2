@@ -1,0 +1,427 @@
+---
+title: 'Firebase Integration'
+description: 'How Firebase Realtime Database is integrated and used'
+icon: 'fire'
+---
+
+## Overview
+
+HuelvaPedia uses **Firebase Realtime Database** as its backend for storing and retrieving encyclopedia content. The integration is real-time, meaning the UI automatically updates when database values change.
+
+## Firebase Setup
+
+### Database Reference Initialization
+
+Both `MainActivity` and `Secundaria` initialize Firebase database references in `onCreate()`:
+
+<CodeGroup>
+```java MainActivity.java:48
+reference = FirebaseDatabase.getInstance().getReference().child("principal");
+```
+
+```java Secundaria.java:49
+// Recibe el nombre del tema anterior y lo normaliza para buscar su referencia en Firebase
+Intent intent = getIntent();
+String nombreReferencia = intent.getStringExtra("Nombre")
+        .replace(" ", "")
+        .toLowerCase();
+
+reference = FirebaseDatabase.getInstance().getReference().child(nombreReferencia);
+```
+</CodeGroup>
+
+<Info>
+**MainActivity** always queries the `"principal"` node, while **Secundaria** dynamically queries based on the normalized category name.
+</Info>
+
+## Reference Naming Convention
+
+Secundaria uses a specific naming convention to match Firebase node names:
+
+```java Secundaria.java:51
+String nombreReferencia = intent.getStringExtra("Nombre")
+        .replace(" ", "")
+        .toLowerCase();
+```
+
+### Transformation Examples
+
+| Display Name | Firebase Node |
+|-------------|---------------|
+| "Historia" | `historia` |
+| "Gastronomía" | `gastronomía` |
+| "Lugares de Interés" | `lugaresdeinterés` |
+
+<Warning>
+Firebase node names must exactly match the normalized format or queries will fail silently.
+</Warning>
+
+## Real-Time Listeners
+
+### ValueEventListener Pattern
+
+Both Activities use `ValueEventListener` to observe database changes:
+
+```java MainActivity.java:50
+reference.addValueEventListener(new ValueEventListener()
+{
+    @Override
+    public void onDataChange(@NonNull DataSnapshot snapshot)
+    {
+        listaElementos.clear(); // Evita duplicación de datos cuando Firebase notifica cambios
+        for (DataSnapshot dataSnapshot : snapshot.getChildren())
+        {
+            Elementos elemento = dataSnapshot.getValue(Elementos.class);
+            listaElementos.add(elemento);
+        }
+        adaptador = new Adaptador(MainActivity.this, listaElementos);
+        recyclerView.setAdapter(adaptador);
+    }
+
+    @Override
+    public void onCancelled(@NonNull DatabaseError error)
+    {
+        Toast.makeText(MainActivity.this, "Algo ha fallado", Toast.LENGTH_SHORT).show();
+    }
+});
+```
+
+### Key Implementation Details
+
+<Tabs>
+  <Tab title="Data Retrieval">
+    **onDataChange()** fires when:
+    - Initial data is loaded
+    - Any child node is added, changed, or removed
+    
+    ```java
+    for (DataSnapshot dataSnapshot : snapshot.getChildren())
+    {
+        Elementos elemento = dataSnapshot.getValue(Elementos.class);
+        listaElementos.add(elemento);
+    }
+    ```
+    
+    <Note>
+    Firebase automatically deserializes JSON to Elementos objects using `getValue(Elementos.class)`.
+    </Note>
+  </Tab>
+  
+  <Tab title="Duplicate Prevention">
+    **Clear before populating**:
+    
+    ```java MainActivity.java:55
+    listaElementos.clear(); // Evita duplicación de datos cuando Firebase notifica cambios
+    ```
+    
+    This ensures that when Firebase notifies of changes, items aren't duplicated in the list.
+  </Tab>
+  
+  <Tab title="Error Handling">
+    **onCancelled()** handles failures:
+    
+    ```java MainActivity.java:66
+    @Override
+    public void onCancelled(@NonNull DatabaseError error)
+    {
+        Toast.makeText(MainActivity.this, "Algo ha fallado", Toast.LENGTH_SHORT).show();
+    }
+    ```
+    
+    <Info>
+    Common causes: no internet, Firebase rules deny access, or malformed data.
+    </Info>
+  </Tab>
+</Tabs>
+
+## Database Structure
+
+HuelvaPedia's Firebase database follows a hierarchical structure:
+
+```
+firebase-realtime-db/
+│
+├── principal/
+│   ├── -AbC123/
+│   │   ├── nombre: "Historia"
+│   │   ├── foto: "https://..."
+│   │   ├── descripcion: "..."
+│   │   ├── ultimo: false
+│   │   └── ...
+│   │
+│   ├── -DefG456/
+│   │   ├── nombre: "Gastronomía"
+│   │   └── ...
+│   └── ...
+│
+├── historia/  (normalized from "Historia")
+│   ├── -XyZ789/
+│   │   ├── nombre: "Época Romana"
+│   │   ├── ultimo: false
+│   │   └── ...
+│   └── ...
+│
+├── épocaromana/  (normalized from "Época Romana")
+│   ├── -Qwe012/
+│   │   ├── nombre: "Puente Romano"
+│   │   ├── ultimo: true
+│   │   ├── ubicacion1: "https://..."
+│   │   └── ...
+│   └── ...
+│
+└── ...
+```
+
+<Accordion title="Database Navigation Example">
+1. **MainActivity** loads `principal` → Shows ["Historia", "Gastronomía", ...]
+2. User clicks **"Historia"**
+3. **Secundaria** receives Intent with "Historia"
+4. Normalizes to `"historia"` (lowercase, no spaces)
+5. Queries Firebase node `historia` → Shows ["Época Romana", "Edad Media", ...]
+6. User clicks **"Época Romana"**
+7. **Secundaria** normalizes to `"épocaromana"`
+8. Queries Firebase node `épocaromana` → Shows terminal items with action buttons
+</Accordion>
+
+## Data Synchronization
+
+### Automatic UI Updates
+
+Firebase listeners automatically update the UI when data changes on the server:
+
+<Steps>
+  <Step title="Database Change">
+    Admin modifies data in Firebase Console
+  </Step>
+  
+  <Step title="Listener Triggered">
+    `onDataChange()` is called automatically
+  </Step>
+  
+  <Step title="List Updated">
+    ```java
+    listaElementos.clear();
+    for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
+        Elementos elemento = dataSnapshot.getValue(Elementos.class);
+        listaElementos.add(elemento);
+    }
+    ```
+  </Step>
+  
+  <Step title="UI Refreshed">
+    ```java
+    adaptador = new Adaptador(MainActivity.this, listaElementos);
+    recyclerView.setAdapter(adaptador);
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+The app creates a **new adapter instance** on every update instead of calling `notifyDataSetChanged()`. While functional, this is less efficient for large datasets.
+</Warning>
+
+## Internet Connectivity Check
+
+The splash screen (`PantallaCarga`) ensures internet connectivity before accessing Firebase:
+
+```java PantallaCarga.java:62
+private void checkConnectivity()
+{
+    final ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+    final NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+
+    hayConexion = activeNetworkInfo != null && activeNetworkInfo.isConnectedOrConnecting();
+
+    if (hayConexion)
+    {
+        handler.postDelayed(navegarAPrincipal, DURACION_CARGA);
+    }
+    else
+    {
+        Toast.makeText(PantallaCarga.this, "SE DEBE DISPONER DE CONEXIÓN A INTERNET", Toast.LENGTH_LONG).show();
+        connectivityManager.registerNetworkCallback(
+                new NetworkRequest.Builder()
+                        .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                        .build(), connectivityCallback);
+        monitorizando = true;
+    }
+}
+```
+
+### Network Callback
+
+If no internet is detected, the app monitors for connectivity:
+
+```java PantallaCarga.java:45
+private final ConnectivityManager.NetworkCallback connectivityCallback = new ConnectivityManager.NetworkCallback()
+{
+    @Override
+    public void onAvailable(Network network)
+    {
+        hayConexion = true;
+        handler.postDelayed(navegarAPrincipal, DURACION_CARGA);
+    }
+
+    @Override
+    public void onLost(Network network)
+    {
+        hayConexion = false;
+        Toast.makeText(PantallaCarga.this, "SE DEBE DISPONER DE CONEXIÓN A INTERNET", Toast.LENGTH_LONG).show();
+    }
+};
+```
+
+<Info>
+The app **requires internet** to function since all content comes from Firebase Realtime Database.
+</Info>
+
+## Firebase Dependencies
+
+While not shown in the Java files, Firebase requires these dependencies in `build.gradle`:
+
+```gradle
+dependencies {
+    implementation 'com.google.firebase:firebase-database:20.x.x'
+    // Other Firebase dependencies...
+}
+```
+
+## Data Serialization
+
+### Automatic Conversion
+
+Firebase automatically converts between Java objects and JSON:
+
+<Tabs>
+  <Tab title="Firebase → Java">
+    **Deserialization** (Firebase to Elementos):
+    
+    ```java
+    Elementos elemento = dataSnapshot.getValue(Elementos.class);
+    ```
+    
+    **Requirements**:
+    - Empty public constructor
+    - Public getters/setters or public fields
+    - Field names match Firebase keys
+  </Tab>
+  
+  <Tab title="Java → Firebase">
+    **Serialization** (Elementos to Firebase):
+    
+    ```java
+    // Not used in this app (read-only)
+    // But would work like:
+    databaseReference.setValue(elemento);
+    ```
+    
+    Firebase would convert the Elementos object to JSON automatically.
+  </Tab>
+</Tabs>
+
+## Read-Only Architecture
+
+<Note>
+HuelvaPedia is a **read-only** app. It only performs:
+- `addValueEventListener()` - Read operations
+- No `setValue()`, `updateChildren()`, or `removeValue()` calls
+
+Content management happens through Firebase Console or admin tools.
+</Note>
+
+## Error Scenarios
+
+| Scenario | Handling |
+|----------|----------|
+| No internet connection | `PantallaCarga` blocks navigation, shows toast |
+| Firebase rules deny access | `onCancelled()` shows "Algo ha fallado" toast |
+| Malformed data | Firebase returns null, app may crash without null checks |
+| Wrong node name | Firebase returns empty snapshot, shows empty list |
+
+<Warning>
+The current implementation doesn't handle all error cases robustly. For example, if Firebase returns null for a field, calling methods on it could cause `NullPointerException`.
+</Warning>
+
+## Performance Considerations
+
+### Current Approach
+
+```java MainActivity.java:61
+adaptador = new Adaptador(MainActivity.this, listaElementos);
+recyclerView.setAdapter(adaptador);
+```
+
+**Drawbacks**:
+- Creates new adapter on every Firebase update
+- RecyclerView loses scroll position
+- Less efficient for frequent updates
+
+### Recommended Improvement
+
+```java
+// Initialize once in onCreate()
+adaptador = new Adaptador(MainActivity.this, listaElementos);
+recyclerView.setAdapter(adaptador);
+
+// In onDataChange():
+listaElementos.clear();
+for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
+    listaElementos.add(dataSnapshot.getValue(Elementos.class));
+}
+adaptador.notifyDataSetChanged(); // Notify existing adapter
+```
+
+## Lifecycle Management
+
+<Warning>
+**Missing cleanup**: Neither Activity removes the Firebase listener in `onPause()` or `onDestroy()`, which could cause memory leaks.
+</Warning>
+
+**Recommended**:
+
+```java
+@Override
+protected void onDestroy() {
+    if (reference != null && valueEventListener != null) {
+        reference.removeEventListener(valueEventListener);
+    }
+    super.onDestroy();
+}
+```
+
+## Security Rules
+
+While not shown in the code, Firebase Realtime Database requires security rules. For a read-only public app:
+
+```json
+{
+  "rules": {
+    ".read": true,
+    ".write": false
+  }
+}
+```
+
+<Info>
+This allows anyone to read data but prevents unauthorized writes.
+</Info>
+
+## Key Takeaways
+
+<CardGroup cols={2}>
+  <Card title="Real-Time Updates" icon="rotate">
+    ValueEventListener automatically syncs UI with database
+  </Card>
+  
+  <Card title="Hierarchical Navigation" icon="sitemap">
+    Dynamic references based on normalized category names
+  </Card>
+  
+  <Card title="Internet Required" icon="wifi">
+    PantallaCarga ensures connectivity before loading data
+  </Card>
+  
+  <Card title="Automatic Serialization" icon="wand-magic-sparkles">
+    Firebase converts JSON ↔ Elementos objects seamlessly
+  </Card>
+</CardGroup>

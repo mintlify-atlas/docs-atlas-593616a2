@@ -1,0 +1,178 @@
+---
+title: 'Prerequisites'
+description: 'System requirements and prerequisites for HuelvaPedia Android development'
+---
+
+## Overview
+
+Before you begin developing or building HuelvaPedia, ensure your development environment meets the following requirements. HuelvaPedia is an Android encyclopedia app about Huelva, Spain, built with Java and Firebase Realtime Database.
+
+<Warning>
+An active internet connection is required for the app to function, as all content is hosted in Firebase Realtime Database and fetched dynamically.
+</Warning>
+
+## Development Environment
+
+### Android Studio
+
+<Steps>
+  <Step title="Install Android Studio">
+    Download and install Android Studio Electric Eel (2022.1.1) or newer.
+    
+    Get it from the [official Android Studio website](https://developer.android.com/studio).
+  </Step>
+  
+  <Step title="Verify Installation">
+    Launch Android Studio and ensure it completes the initial setup wizard, including downloading the necessary SDK components.
+  </Step>
+</Steps>
+
+<Tip>
+Android Studio Flamingo (2022.2.1) or newer is recommended for the best development experience with this project.
+</Tip>
+
+### Java Development Kit (JDK)
+
+HuelvaPedia requires Java JDK for compilation and development.
+
+**Required Version:** JDK 11 or higher
+
+<Note>
+The project uses Java 8 language features (sourceCompatibility and targetCompatibility set to `VERSION_1_8`), but the Gradle JVM should run on JDK 11 or higher for compatibility with Gradle 7.4.2.
+</Note>
+
+### Android SDK Components
+
+The following Android SDK components are required:
+
+| Component | Version | Purpose |
+|-----------|---------|---------|
+| Compile SDK | API 30 | Android 11 compilation target |
+| Build Tools | 30.0.3 | Build process tools |
+| Target SDK | API 30 | Android 11 target platform |
+| Min SDK | API 27 | Android 8.1 (Oreo) minimum support |
+
+<Steps>
+  <Step title="Open SDK Manager">
+    In Android Studio, go to `Tools > SDK Manager`
+  </Step>
+  
+  <Step title="Install Android SDK Platform">
+    Under the "SDK Platforms" tab, ensure **Android 11.0 (R) - API Level 30** is installed
+  </Step>
+  
+  <Step title="Install Build Tools">
+    Under the "SDK Tools" tab, ensure **Android SDK Build-Tools 30.0.3** (or higher) is installed
+  </Step>
+</Steps>
+
+## Device Requirements
+
+### Minimum Device Specifications
+
+To run HuelvaPedia, devices must meet these requirements:
+
+- **Minimum OS:** Android 8.1 (Oreo) - API Level 27
+- **Target OS:** Android 11 - API Level 30
+- **Screen Sizes:** Small and Normal screen sizes supported
+- **Screen Densities:** ldpi, mdpi, hdpi, xhdpi
+- **Internet:** Active internet connection required
+
+<Accordion title="Supported Screen Configurations">
+  HuelvaPedia supports the following screen configurations as defined in AndroidManifest.xml:
+
+  **Small Screens:**
+  - ldpi (low density ~120dpi)
+  - mdpi (medium density ~160dpi)
+  - hdpi (high density ~240dpi)
+  - xhdpi (extra-high density ~320dpi)
+
+  **Normal Screens:**
+  - ldpi (low density ~120dpi)
+  - mdpi (medium density ~160dpi)
+  - hdpi (high density ~240dpi)
+  - xhdpi (extra-high density ~320dpi)
+</Accordion>
+
+### Required Permissions
+
+The app requires the following Android permissions:
+
+- `INTERNET` - For fetching data from Firebase
+- `ACCESS_NETWORK_STATE` - For checking network connectivity
+
+## Build System Requirements
+
+### Gradle
+
+The project uses Gradle for build management:
+
+- **Android Gradle Plugin:** 7.4.2
+- **Gradle Wrapper:** Included in project
+- **JVM Memory:** Configured with `-Xmx2048m` for optimal performance
+
+<Note>
+The project's Gradle wrapper handles the Gradle version automatically. You don't need to install Gradle separately.
+</Note>
+
+### Gradle Properties
+
+Key Gradle configurations from gradle.properties:
+
+```properties
+org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+android.useAndroidX=true
+android.enableJetifier=true
+```
+
+## Firebase Requirements
+
+### Firebase Project Setup
+
+<Warning>
+You must have an active Google account and create a Firebase project before building HuelvaPedia. The `google-services.json` file is not included in the repository for security reasons.
+</Warning>
+
+Required Firebase services:
+
+- **Firebase Realtime Database** - For storing and retrieving encyclopedia content
+- **Firebase Android App** - Registered with package name `com.example.huelvapedia`
+
+The detailed Firebase configuration process is covered in the [Firebase Configuration](/setup/firebase-configuration) guide.
+
+## Version Control
+
+### Git
+
+Git is required for cloning the repository:
+
+```bash
+git --version
+```
+
+Minimum version: Git 2.0 or higher
+
+## Internet Connection
+
+<Warning>
+An active internet connection is essential throughout development for:
+- Downloading Gradle dependencies
+- Syncing with Firebase
+- Testing app functionality (app cannot function offline)
+</Warning>
+
+## Quick Checklist
+
+Before proceeding to installation, verify you have:
+
+- [ ] Android Studio Electric Eel or newer installed
+- [ ] JDK 11 or higher installed
+- [ ] Android SDK API 30 installed
+- [ ] Build Tools 30.0.3 or higher installed
+- [ ] Git installed for repository cloning
+- [ ] Google account for Firebase access
+- [ ] Active internet connection
+
+## Next Steps
+
+Once you've met all prerequisites, proceed to the [Installation Guide](/setup/installation) to clone the repository and set up the project.

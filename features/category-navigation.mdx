@@ -1,0 +1,182 @@
+---
+title: Category Navigation
+description: Learn how users navigate through categories from MainActivity to Secundaria using Firebase and RecyclerView
+---
+
+## Overview
+
+HuelvaPedia implements a hierarchical navigation system that allows users to browse through categories and subcategories. The app uses a two-level structure: **MainActivity** displays primary categories, and **Secundaria** displays subcategories or detailed items.
+
+## Navigation Flow
+
+<Steps>
+  <Step title="Load Primary Categories">
+    MainActivity fetches the top-level categories from Firebase's "principal" node
+  </Step>
+  <Step title="User Selects Category">
+    When a user taps on a category, the app passes the category name to Secundaria
+  </Step>
+  <Step title="Load Subcategories">
+    Secundaria normalizes the category name and fetches data from the corresponding Firebase node
+  </Step>
+  <Step title="Display Items or Actions">
+    Items marked as "ultimo" (final) show action buttons instead of allowing further navigation
+  </Step>
+</Steps>
+
+## MainActivity Implementation
+
+MainActivity serves as the entry point, loading primary categories from Firebase Realtime Database.
+
+### Firebase Integration
+
+```java MainActivity.java (lines 25-48)
+private DatabaseReference reference;
+private RecyclerView recyclerView;
+private ArrayList<Elementos> listaElementos;
+private Adaptador adaptador;
+
+@Override
+protected void onCreate(Bundle savedInstanceState)
+{
+    super.onCreate(savedInstanceState);
+    setContentView(R.layout.activity_main);
+
+    botonTiempo = findViewById(R.id.botontiempo);
+
+    ActionBar actionBar = getSupportActionBar();
+    actionBar.setIcon(R.mipmap.ic_escudohuelva);
+    actionBar.setDisplayShowHomeEnabled(true);
+
+    recyclerView = findViewById(R.id.recicler);
+    recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+    listaElementos = new ArrayList<>();
+
+    reference = FirebaseDatabase.getInstance().getReference().child("principal");
+```
+
+### Real-time Data Listener
+
+```java MainActivity.java (lines 50-70)
+reference.addValueEventListener(new ValueEventListener()
+{
+    @Override
+    public void onDataChange(@NonNull DataSnapshot snapshot)
+    {
+        listaElementos.clear(); // Evita duplicación de datos cuando Firebase notifica cambios
+        for (DataSnapshot dataSnapshot : snapshot.getChildren())
+        {
+            Elementos elemento = dataSnapshot.getValue(Elementos.class);
+            listaElementos.add(elemento);
+        }
+        adaptador = new Adaptador(MainActivity.this, listaElementos);
+        recyclerView.setAdapter(adaptador);
+    }
+
+    @Override
+    public void onCancelled(@NonNull DatabaseError error)
+    {
+        Toast.makeText(MainActivity.this, "Algo ha fallado", Toast.LENGTH_SHORT).show();
+    }
+});
+```
+
+<Note>
+The `ValueEventListener` automatically updates the UI whenever data changes in Firebase, providing real-time synchronization.
+</Note>
+
+## Secundaria Activity
+
+Secundaria receives a category name from MainActivity and loads the corresponding subcategories.
+
+### Receiving Navigation Data
+
+```java Secundaria.java (lines 49-55)
+// Recibe el nombre del tema anterior y lo normaliza para buscar su referencia en Firebase
+Intent intent = getIntent();
+String nombreReferencia = intent.getStringExtra("Nombre")
+        .replace(" ", "")
+        .toLowerCase();
+
+reference = FirebaseDatabase.getInstance().getReference().child(nombreReferencia);
+```
+
+<Info>
+The category name is normalized by removing spaces and converting to lowercase to match Firebase node naming conventions.
+</Info>
+
+### UI Configuration
+
+```java Secundaria.java (lines 37-38)
+botonTiempo = findViewById(R.id.botontiempo);
+botonTiempo.setVisibility(View.GONE); // Oculta el botón del tiempo en los subtemas
+```
+
+<Tip>
+The weather button is only visible in MainActivity, not in subcategory views, creating a cleaner navigation experience.
+</Tip>
+
+## Adapter Navigation Logic
+
+The Adaptador class handles click events and determines whether to navigate deeper or show action buttons.
+
+### Conditional Navigation
+
+```java Adaptador.java (lines 54-68)
+if (!elemento.getUltimo()) // Si no es el último, se navega a la Activity Secundaria
+{
+    holder.botonUbicacion.setVisibility(View.GONE);
+    holder.botonLlamar.setVisibility(View.GONE);
+    holder.botonEnlace.setVisibility(View.GONE);
+
+    if (!tieneUbicacion && !tieneTelefono && !tieneEnlace)
+    {
+        holder.itemView.setOnClickListener(v -> {
+            Intent intent = new Intent(v.getContext(), Secundaria.class);
+            intent.putExtra("Nombre", elemento.getNombre());
+            v.getContext().startActivity(intent);
+        });
+    }
+}
+```
+
+### Data Model
+
+The navigation system relies on the Elementos class structure:
+
+```java Elementos.java (lines 3-11)
+public class Elementos {
+    private String nombre;
+    private String foto;
+    private String descripcion;
+    private String ubicacion1;
+    private String ubicacion2;
+    private String telefono;
+    private Boolean ultimo;
+    private String enlace;
+}
+```
+
+<Note>
+The `ultimo` boolean flag determines whether an item is a final destination (showing action buttons) or an intermediate category (allowing further navigation).
+</Note>
+
+## RecyclerView Setup
+
+Both activities use the same RecyclerView configuration pattern:
+
+```java
+recyclerView = findViewById(R.id.recicler);
+recyclerView.setLayoutManager(new LinearLayoutManager(this));
+listaElementos = new ArrayList<>();
+```
+
+This creates a vertical scrolling list with LinearLayoutManager, displaying categories or items loaded from Firebase.
+
+## Key Implementation Files
+
+- `MainActivity.java:48` - Firebase reference to "principal" node
+- `Secundaria.java:50-53` - Category name normalization logic
+- `Adaptador.java:54-68` - Navigation vs. action button decision logic
+- `Elementos.java:77` - The `ultimo` flag that controls navigation behavior

@@ -1,0 +1,382 @@
+---
+title: "Adaptador (RecyclerView Adapter)"
+description: "Custom RecyclerView adapter for displaying encyclopedia topics and managing item interactions"
+---
+
+The Adaptador class is a custom RecyclerView adapter that bridges the data model (Elementos) with the view layer, handling both navigation items and actionable content with buttons.
+
+## Overview
+
+Adaptador extends `RecyclerView.Adapter<Adaptador.MiViewHolder>` and implements `View.OnClickListener` to manage the display of encyclopedia topics. It intelligently handles two types of items:
+
+1. **Navigation Items**: Topics that lead to subtopic screens (Secundaria activity)
+2. **Action Items**: Final-level content with interactive buttons (maps, phone, web links)
+
+## Class Structure
+
+<ParamField path="context" type="Context">
+  Application context for inflating layouts and starting activities
+</ParamField>
+
+<ParamField path="elementos" type="ArrayList<Elementos>">
+  List of data elements to display in the RecyclerView
+</ParamField>
+
+<ParamField path="listener" type="View.OnClickListener">
+  Optional click listener for custom item click handling
+</ParamField>
+
+## Constructor
+
+<CodeGroup>
+
+```java Constructor
+public Adaptador(Context context, ArrayList<Elementos> elementos)
+{
+    this.context = context;
+    this.elementos = elementos;
+}
+```
+
+</CodeGroup>
+
+The adapter requires a context and a list of Elementos to initialize.
+
+## Core Methods
+
+### onCreateViewHolder
+
+Creates and initializes the ViewHolder for each item in the RecyclerView.
+
+<CodeGroup>
+
+```java onCreateViewHolder
+@NonNull
+@Override
+public MiViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType)
+{
+   View view = LayoutInflater.from(context).inflate(R.layout.principal, parent, false);
+   view.setOnClickListener(this);
+   return new MiViewHolder(view);
+}
+```
+
+</CodeGroup>
+
+**Key Points:**
+- Inflates the `R.layout.principal` layout for each item
+- Attaches the adapter's click listener to the root view
+- Returns a new MiViewHolder instance
+
+### onBindViewHolder
+
+Binds data to the view holder and configures item behavior based on the element type.
+
+<Tabs>
+  <Tab title="Basic Data Binding">
+    ```java
+    @Override
+    public void onBindViewHolder(@NonNull MiViewHolder holder, int position)
+    {
+        Elementos elemento = elementos.get(position);
+
+        holder.nombre.setText(elemento.getNombre());
+        holder.descripcion.setText(elemento.getDescripcion());
+        Picasso.get().load(elemento.getFoto()).into(holder.imagen);
+
+        boolean tieneUbicacion = elemento.getUbicacion1() != null && elemento.getUbicacion2() != null;
+        boolean tieneTelefono = elemento.getTelefono() != null;
+        boolean tieneEnlace = elemento.getEnlace() != null;
+        
+        // ... continued
+    }
+    ```
+  </Tab>
+  <Tab title="Navigation Items">
+    ```java
+    if (!elemento.getUltimo()) // Si no es el último, se navega a la Activity Secundaria
+    {
+        holder.botonUbicacion.setVisibility(View.GONE);
+        holder.botonLlamar.setVisibility(View.GONE);
+        holder.botonEnlace.setVisibility(View.GONE);
+
+        if (!tieneUbicacion && !tieneTelefono && !tieneEnlace)
+        {
+            holder.itemView.setOnClickListener(v -> {
+                Intent intent = new Intent(v.getContext(), Secundaria.class);
+                intent.putExtra("Nombre", elemento.getNombre());
+                v.getContext().startActivity(intent);
+            });
+        }
+    }
+    ```
+  </Tab>
+  <Tab title="Action Items">
+    ```java
+    else // Es el último elemento, solo permite pulsar botones de acción
+    {
+        // Botón de ubicación (mapa)
+        if (tieneUbicacion)
+        {
+            holder.botonUbicacion.setOnClickListener(v -> {
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setData(Uri.parse(elemento.getUbicacion1() + Uri.encode(elemento.getUbicacion2())));
+                Intent chooser = Intent.createChooser(intent, "Launch Maps");
+                v.getContext().startActivity(chooser);
+            });
+        }
+        else
+        {
+            holder.botonUbicacion.setVisibility(View.GONE);
+        }
+
+        // Botón de teléfono (llamar)
+        if (tieneTelefono)
+        {
+            holder.botonLlamar.setOnClickListener(v -> {
+                Intent intent = new Intent(Intent.ACTION_DIAL);
+                intent.setData(Uri.parse("tel:" + elemento.getTelefono()));
+                v.getContext().startActivity(intent);
+            });
+        }
+        else
+        {
+            holder.botonLlamar.setVisibility(View.GONE);
+        }
+
+        // Botón de enlace (web)
+        if (tieneEnlace)
+        {
+            holder.botonEnlace.setOnClickListener(v -> {
+                Uri link = Uri.parse(elemento.getEnlace());
+                Intent intent = new Intent(Intent.ACTION_VIEW, link);
+                v.getContext().startActivity(intent);
+            });
+        }
+        else
+        {
+            holder.botonEnlace.setVisibility(View.GONE);
+        }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### getItemCount
+
+Returns the total number of items in the dataset.
+
+<CodeGroup>
+
+```java getItemCount
+@Override
+public int getItemCount()
+{
+    return elementos.size();
+}
+```
+
+</CodeGroup>
+
+### Click Listener Management
+
+<CodeGroup>
+
+```java Click Listener
+public void setOnClickListener(View.OnClickListener listener)
+{
+    this.listener = listener;
+}
+
+@Override
+public void onClick(View v) {
+    if (listener != null)
+    {
+        listener.onClick(v);
+    }
+}
+```
+
+</CodeGroup>
+
+Provides a way to set custom click handling behavior for items.
+
+## ViewHolder (MiViewHolder)
+
+The inner ViewHolder class that holds references to the item's views.
+
+<ParamField path="nombre" type="TextView">
+  Displays the element's name
+</ParamField>
+
+<ParamField path="descripcion" type="TextView">
+  Shows the element's description
+</ParamField>
+
+<ParamField path="imagen" type="ImageView">
+  Displays the element's image (loaded via Picasso)
+</ParamField>
+
+<ParamField path="botonUbicacion" type="Button">
+  Button for opening location in maps
+</ParamField>
+
+<ParamField path="botonLlamar" type="Button">
+  Button for initiating a phone call
+</ParamField>
+
+<ParamField path="botonEnlace" type="Button">
+  Button for opening a web link
+</ParamField>
+
+<CodeGroup>
+
+```java MiViewHolder
+static class MiViewHolder extends RecyclerView.ViewHolder
+{
+    TextView nombre, descripcion;
+    ImageView imagen;
+    Button botonUbicacion, botonLlamar, botonEnlace;
+
+    public MiViewHolder(@NonNull View itemView)
+    {
+        super(itemView);
+
+        nombre = itemView.findViewById(R.id.tenombre);
+        descripcion = itemView.findViewById(R.id.tedescri);
+        imagen = itemView.findViewById(R.id.imagen);
+        botonUbicacion = itemView.findViewById(R.id.botonubi);
+        botonLlamar = itemView.findViewById(R.id.botonllamar);
+        botonEnlace = itemView.findViewById(R.id.botonwiki);
+    }
+}
+```
+
+</CodeGroup>
+
+## Behavior Logic
+
+The adapter implements smart behavior based on the `ultimo` field of each Elementos object:
+
+<Note>
+The `ultimo` (last) boolean field determines whether an item is a navigation item or a final action item:
+- **`ultimo = false`**: Item navigates to Secundaria activity with subtopics
+- **`ultimo = true`**: Item displays action buttons (map, phone, web)
+</Note>
+
+### Navigation Items (ultimo = false)
+
+- All action buttons are hidden
+- Tapping the item launches Secundaria activity
+- Passes the element's name as an Intent extra
+
+### Action Items (ultimo = true)
+
+- Item tap is disabled
+- Action buttons are conditionally shown based on available data:
+  - **Map Button**: Opens Google Maps with encoded location
+  - **Phone Button**: Launches dialer with the phone number
+  - **Web Button**: Opens the URL in a browser
+
+## Key Features
+
+### Image Loading with Picasso
+
+Uses the Picasso library for efficient image loading and caching:
+
+```java
+Picasso.get().load(elemento.getFoto()).into(holder.imagen);
+```
+
+### Intent Actions
+
+The adapter leverages Android's intent system for seamless integration:
+
+- **ACTION_VIEW**: Opens maps and web browsers
+- **ACTION_DIAL**: Initiates phone calls
+- **createChooser()**: Allows users to select their preferred maps app
+
+### Dynamic UI
+
+Views are shown or hidden based on data availability:
+
+```java
+boolean tieneUbicacion = elemento.getUbicacion1() != null && elemento.getUbicacion2() != null;
+boolean tieneTelefono = elemento.getTelefono() != null;
+boolean tieneEnlace = elemento.getEnlace() != null;
+```
+
+### URL Encoding
+
+Location data is properly encoded before passing to the maps intent:
+
+```java
+intent.setData(Uri.parse(elemento.getUbicacion1() + Uri.encode(elemento.getUbicacion2())));
+```
+
+## Usage Example
+
+<CodeGroup>
+
+```java In MainActivity
+listaElementos = new ArrayList<>();
+reference = FirebaseDatabase.getInstance().getReference().child("principal");
+
+reference.addValueEventListener(new ValueEventListener()
+{
+    @Override
+    public void onDataChange(@NonNull DataSnapshot snapshot)
+    {
+        listaElementos.clear();
+        for (DataSnapshot dataSnapshot : snapshot.getChildren())
+        {
+            Elementos elemento = dataSnapshot.getValue(Elementos.class);
+            listaElementos.add(elemento);
+        }
+        adaptador = new Adaptador(MainActivity.this, listaElementos);
+        recyclerView.setAdapter(adaptador);
+    }
+    // ...
+});
+```
+
+```java In Secundaria
+listaElementos = new ArrayList<>();
+String nombreReferencia = intent.getStringExtra("Nombre")
+        .replace(" ", "")
+        .toLowerCase();
+
+reference = FirebaseDatabase.getInstance().getReference().child(nombreReferencia);
+
+reference.addValueEventListener(new ValueEventListener()
+{
+    @Override
+    public void onDataChange(@NonNull DataSnapshot snapshot)
+    {
+        listaElementos.clear();
+        for (DataSnapshot dataSnapshot : snapshot.getChildren())
+        {
+            Elementos elemento = dataSnapshot.getValue(Elementos.class);
+            listaElementos.add(elemento);
+        }
+        adaptador = new Adaptador(Secundaria.this, listaElementos);
+        recyclerView.setAdapter(adaptador);
+    }
+    // ...
+});
+```
+
+</CodeGroup>
+
+## Dependencies
+
+The Adaptador class relies on:
+
+- **Android RecyclerView**: For list rendering
+- **Picasso**: For image loading (`com.squareup.picasso:picasso`)
+- **Elementos**: The data model class
+- **Secundaria**: The secondary activity for navigation
+
+<Note>
+The adapter is reused across both MainActivity and Secundaria, demonstrating good code reuse practices. The same adapter logic handles different data sources by simply passing different contexts and element lists.
+</Note>

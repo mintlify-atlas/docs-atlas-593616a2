@@ -1,0 +1,237 @@
+---
+title: External Actions
+description: Integration with Maps, Phone, and Web browsers using Android Intents
+---
+
+## Overview
+
+HuelvaPedia enables users to interact with external services directly from the app. When viewing final-level items (marked with `ultimo = true`), users can open locations in Maps apps, initiate phone calls, or visit external websites.
+
+## Action Button Visibility
+
+The Adaptador class determines which action buttons to display based on the data available for each item.
+
+### Data Availability Check
+
+```java Adaptador.java (lines 50-52)
+boolean tieneUbicacion = elemento.getUbicacion1() != null && elemento.getUbicacion2() != null;
+boolean tieneTelefono = elemento.getTelefono() != null;
+boolean tieneEnlace = elemento.getEnlace() != null;
+```
+
+<Info>
+Action buttons only appear for items marked as `ultimo = true` (final destination items). Intermediate category items navigate to Secundaria instead.
+</Info>
+
+## Maps Integration
+
+### Opening Locations
+
+When an item has location data, users can tap the location button to view it in their preferred maps application.
+
+```java Adaptador.java (lines 71-84)
+// Botón de ubicación (mapa)
+if (tieneUbicacion)
+{
+    holder.botonUbicacion.setOnClickListener(v -> {
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setData(Uri.parse(elemento.getUbicacion1() + Uri.encode(elemento.getUbicacion2())));
+        Intent chooser = Intent.createChooser(intent, "Launch Maps");
+        v.getContext().startActivity(chooser);
+    });
+}
+else
+{
+    holder.botonUbicacion.setVisibility(View.GONE);
+}
+```
+
+### Location Data Structure
+
+The location is split into two fields in the Elementos model:
+
+```java Elementos.java (lines 7-8)
+private String ubicacion1;
+private String ubicacion2;
+```
+
+<Note>
+`ubicacion1` typically contains the base Maps URL (e.g., "geo:0,0?q="), while `ubicacion2` contains the actual location query. The second part is URI-encoded before concatenation.
+</Note>
+
+### Intent Chooser
+
+The `Intent.createChooser()` method allows users to select their preferred maps application:
+- Google Maps
+- Waze
+- Other navigation apps installed on the device
+
+<Tip>
+Using `ACTION_VIEW` with a geo URI makes the intent compatible with any app that handles location viewing, not just Google Maps.
+</Tip>
+
+## Phone Integration
+
+### Initiating Calls
+
+Items with phone numbers display a call button that opens the device's phone dialer.
+
+```java Adaptador.java (lines 86-98)
+// Botón de teléfono (llamar)
+if (tieneTelefono)
+{
+    holder.botonLlamar.setOnClickListener(v -> {
+        Intent intent = new Intent(Intent.ACTION_DIAL);
+        intent.setData(Uri.parse("tel:" + elemento.getTelefono()));
+        v.getContext().startActivity(intent);
+    });
+}
+else
+{
+    holder.botonLlamar.setVisibility(View.GONE);
+}
+```
+
+### ACTION_DIAL vs ACTION_CALL
+
+The implementation uses `Intent.ACTION_DIAL` which:
+- Opens the phone dialer with the number pre-filled
+- Requires the user to press "Call" to initiate the call
+- Does NOT require phone permissions in the manifest
+
+<Warning>
+`ACTION_DIAL` is safer than `ACTION_CALL` because it gives users a chance to review the number before calling. `ACTION_CALL` would require the `CALL_PHONE` permission and immediately place the call.
+</Warning>
+
+### Phone Number Format
+
+```java
+intent.setData(Uri.parse("tel:" + elemento.getTelefono()));
+```
+
+The phone number is stored as a string in Firebase and formatted with the `tel:` URI scheme.
+
+## Web Integration
+
+### Opening External Links
+
+Items with web URLs display a link button that opens the URL in the user's default browser.
+
+```java Adaptador.java (lines 100-112)
+// Botón de enlace (web)
+if (tieneEnlace)
+{
+    holder.botonEnlace.setOnClickListener(v -> {
+        Uri link = Uri.parse(elemento.getEnlace());
+        Intent intent = new Intent(Intent.ACTION_VIEW, link);
+        v.getContext().startActivity(intent);
+    });
+}
+else
+{
+    holder.botonEnlace.setVisibility(View.GONE);
+}
+```
+
+### URL Handling
+
+The `enlace` field stores complete URLs (including the protocol):
+
+```java Elementos.java (line 11)
+private String enlace;
+```
+
+Common URL patterns:
+- `https://example.com` - Opens in browser
+- `https://en.wikipedia.org/wiki/Huelva` - External reference links
+
+<Info>
+The `ACTION_VIEW` intent with an HTTP/HTTPS URI automatically opens the user's default browser. Users with multiple browsers installed may see an app chooser dialog.
+</Info>
+
+## ViewHolder Button References
+
+All three action buttons are initialized in the ViewHolder:
+
+```java Adaptador.java (lines 139-150)
+static class MiViewHolder extends RecyclerView.ViewHolder
+{
+    TextView nombre, descripcion;
+    ImageView imagen;
+    Button botonUbicacion, botonLlamar, botonEnlace;
+
+    public MiViewHolder(@NonNull View itemView)
+    {
+        super(itemView);
+
+        nombre = itemView.findViewById(R.id.tenombre);
+        descripcion = itemView.findViewById(R.id.tedescri);
+        imagen = itemView.findViewById(R.id.imagen);
+        botonUbicacion = itemView.findViewById(R.id.botonubi);
+        botonLlamar = itemView.findViewById(R.id.botonllamar);
+        botonEnlace = itemView.findViewById(R.id.botonwiki);
+    }
+}
+```
+
+## Action Flow Logic
+
+<Steps>
+  <Step title="Check Item Type">
+    Adaptador checks if the item is marked as `ultimo = true`
+  </Step>
+  <Step title="Evaluate Available Actions">
+    For final items, check which fields have data (location, phone, link)
+  </Step>
+  <Step title="Show Relevant Buttons">
+    Display only the buttons for which data exists; hide others with `View.GONE`
+  </Step>
+  <Step title="Handle Button Clicks">
+    When clicked, create an appropriate Intent and start the external activity
+  </Step>
+</Steps>
+
+## Complete Button Display Logic
+
+```java Adaptador.java (lines 54-68)
+if (!elemento.getUltimo()) // Si no es el último, se navega a la Activity Secundaria
+{
+    holder.botonUbicacion.setVisibility(View.GONE);
+    holder.botonLlamar.setVisibility(View.GONE);
+    holder.botonEnlace.setVisibility(View.GONE);
+
+    if (!tieneUbicacion && !tieneTelefono && !tieneEnlace)
+    {
+        holder.itemView.setOnClickListener(v -> {
+            Intent intent = new Intent(v.getContext(), Secundaria.class);
+            intent.putExtra("Nombre", elemento.getNombre());
+            v.getContext().startActivity(intent);
+        });
+    }
+}
+```
+
+For non-final items (`ultimo = false`):
+- All action buttons are hidden
+- The entire item becomes clickable to navigate to Secundaria
+- This only happens if the item has no action data (no location, phone, or link)
+
+<Note>
+The conditional `!tieneUbicacion && !tieneTelefono && !tieneEnlace` ensures that items without any action data can still be clicked for navigation, even if they're not explicitly marked as final.
+</Note>
+
+## Intent Summary
+
+| Action | Intent Type | Data Format | Behavior |
+|--------|-------------|-------------|----------|
+| Maps | `ACTION_VIEW` | `geo:0,0?q=[location]` | Opens location in maps app with chooser |
+| Phone | `ACTION_DIAL` | `tel:[number]` | Pre-fills dialer, user confirms call |
+| Web | `ACTION_VIEW` | `https://[url]` | Opens URL in default browser |
+
+## Key Implementation Files
+
+- `Adaptador.java:71-84` - Maps intent implementation
+- `Adaptador.java:86-98` - Phone intent implementation  
+- `Adaptador.java:100-112` - Web intent implementation
+- `Adaptador.java:50-52` - Data availability checks
+- `Elementos.java:7-11` - Action data fields (ubicacion1, ubicacion2, telefono, enlace)

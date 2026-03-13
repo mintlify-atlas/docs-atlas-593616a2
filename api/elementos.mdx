@@ -1,0 +1,414 @@
+---
+title: 'Elementos'
+description: 'Data model class for storing encyclopedia entry information'
+---
+
+## Overview
+
+The `Elementos` class is a Java data model class that represents an encyclopedia entry in the HuelvaPedia app. It stores all information related to a topic, including name, photo, description, location, contact details, and additional metadata.
+
+<Note>
+This class is designed to work seamlessly with Firebase Realtime Database for data persistence and retrieval.
+</Note>
+
+## Class Declaration
+
+```java
+package com.example.huelvapedia;
+
+public class Elementos
+```
+
+## Fields
+
+<ResponseField name="nombre" type="String">
+The name or title of the encyclopedia entry.
+</ResponseField>
+
+<ResponseField name="foto" type="String">
+URL or path to the photo/image associated with this entry.
+</ResponseField>
+
+<ResponseField name="descripcion" type="String">
+Detailed description or content of the encyclopedia entry.
+</ResponseField>
+
+<ResponseField name="ubicacion1" type="String">
+First part of the location URL (base URL for map services).
+</ResponseField>
+
+<ResponseField name="ubicacion2" type="String">
+Second part of the location URL (specific location query or coordinates).
+</ResponseField>
+
+<ResponseField name="telefono" type="String">
+Contact phone number for the entry (if applicable).
+</ResponseField>
+
+<ResponseField name="ultimo" type="Boolean">
+Flag indicating whether this is the last/final element in a navigation hierarchy. When `true`, the entry displays action buttons instead of allowing further navigation.
+</ResponseField>
+
+<ResponseField name="enlace" type="String">
+External web link or reference URL for additional information.
+</ResponseField>
+
+## Constructors
+
+### Empty Constructor
+
+```java
+public Elementos()
+```
+
+Default constructor required by Firebase for deserializing objects from the database.
+
+**Example:**
+```java
+Elementos elemento = new Elementos();
+```
+
+### Parameterized Constructor
+
+```java
+public Elementos(String nombre, String foto, String descripcion, 
+                 String ubicacion1, String ubicacion2, String telefono, 
+                 Boolean ultimo, String enlace)
+```
+
+Creates a new `Elementos` instance with all fields initialized.
+
+<ParamField path="nombre" type="String">
+The name of the encyclopedia entry
+</ParamField>
+
+<ParamField path="foto" type="String">
+URL or path to the entry's photo
+</ParamField>
+
+<ParamField path="descripcion" type="String">
+Description text for the entry
+</ParamField>
+
+<ParamField path="ubicacion1" type="String">
+Base location URL
+</ParamField>
+
+<ParamField path="ubicacion2" type="String">
+Specific location query
+</ParamField>
+
+<ParamField path="telefono" type="String">
+Contact phone number
+</ParamField>
+
+<ParamField path="ultimo" type="Boolean">
+Whether this is a final/leaf element
+</ParamField>
+
+<ParamField path="enlace" type="String">
+External reference link
+</ParamField>
+
+**Example:**
+```java
+Elementos elemento = new Elementos(
+    "Catedral de Huelva",
+    "https://example.com/catedral.jpg",
+    "La Catedral de la Merced es el principal templo católico de Huelva",
+    "https://maps.google.com/?q=",
+    "Catedral de Huelva, Spain",
+    "+34959123456",
+    true,
+    "https://es.wikipedia.org/wiki/Catedral_de_Huelva"
+);
+```
+
+## Methods
+
+### getName
+
+```java
+public String getNombre()
+```
+
+Returns the name of the encyclopedia entry.
+
+**Returns:** `String` - The entry's name
+
+**Example:**
+```java
+Elementos elemento = new Elementos();
+elemento.setNombre("Museo de Huelva");
+String nombre = elemento.getNombre(); // Returns "Museo de Huelva"
+```
+
+---
+
+### setNombre
+
+```java
+public void setNombre(String nombre)
+```
+
+Sets the name of the encyclopedia entry.
+
+<ParamField path="nombre" type="String">
+The name to set
+</ParamField>
+
+**Example:**
+```java
+elemento.setNombre("Monumento a Colón");
+```
+
+---
+
+### getFoto
+
+```java
+public String getFoto()
+```
+
+Returns the photo URL or path.
+
+**Returns:** `String` - The photo URL
+
+**Example:**
+```java
+String fotoUrl = elemento.getFoto();
+```
+
+---
+
+### setFoto
+
+```java
+public void setFoto(String foto)
+```
+
+Sets the photo URL or path.
+
+<ParamField path="foto" type="String">
+The photo URL to set
+</ParamField>
+
+---
+
+### getDescripcion
+
+```java
+public String getDescripcion()
+```
+
+Returns the description text of the entry.
+
+**Returns:** `String` - The description
+
+---
+
+### setDescripcion
+
+```java
+public void setDescripcion(String descripcion)
+```
+
+Sets the description text.
+
+<ParamField path="descripcion" type="String">
+The description to set
+</ParamField>
+
+---
+
+### getUbicacion1
+
+```java
+public String getUbicacion1()
+```
+
+Returns the first part of the location URL.
+
+**Returns:** `String` - The base location URL
+
+---
+
+### setUbicacion1
+
+```java
+public void setUbicacion1(String ubicacion1)
+```
+
+Sets the first part of the location URL.
+
+<ParamField path="ubicacion1" type="String">
+The base location URL
+</ParamField>
+
+---
+
+### getUbicacion2
+
+```java
+public String getUbicacion2()
+```
+
+Returns the second part of the location URL.
+
+**Returns:** `String` - The specific location query
+
+---
+
+### setUbicacion2
+
+```java
+public void setUbicacion2(String ubicacion2)
+```
+
+Sets the second part of the location URL.
+
+<ParamField path="ubicacion2" type="String">
+The specific location query
+</ParamField>
+
+---
+
+### getTelefono
+
+```java
+public String getTelefono()
+```
+
+Returns the contact phone number.
+
+**Returns:** `String` - The phone number
+
+---
+
+### setTelefono
+
+```java
+public void setTelefono(String telefono)
+```
+
+Sets the contact phone number.
+
+<ParamField path="telefono" type="String">
+The phone number to set
+</ParamField>
+
+---
+
+### getUltimo
+
+```java
+public Boolean getUltimo()
+```
+
+Returns whether this is the last element in the navigation hierarchy.
+
+**Returns:** `Boolean` - `true` if this is a final element, `false` otherwise
+
+**Example:**
+```java
+if (elemento.getUltimo()) {
+    // Show action buttons (location, phone, link)
+} else {
+    // Allow navigation to sub-entries
+}
+```
+
+---
+
+### setUltimo
+
+```java
+public void setUltimo(Boolean ultimo)
+```
+
+Sets whether this is a final element.
+
+<ParamField path="ultimo" type="Boolean">
+`true` if this is a final element, `false` otherwise
+</ParamField>
+
+---
+
+### getEnlace
+
+```java
+public String getEnlace()
+```
+
+Returns the external reference link.
+
+**Returns:** `String` - The external link URL
+
+---
+
+### setEnlace
+
+```java
+public void setEnlace(String enlace)
+```
+
+Sets the external reference link.
+
+<ParamField path="enlace" type="String">
+The external link URL
+</ParamField>
+
+## Usage Example
+
+<CodeGroup>
+
+```java Creating and populating an Elementos object
+// Create a new encyclopedia entry
+Elementos playa = new Elementos();
+playa.setNombre("Playa de Punta Umbría");
+playa.setFoto("https://example.com/punta-umbria.jpg");
+playa.setDescripcion("Una de las playas más populares de Huelva");
+playa.setUbicacion1("https://maps.google.com/?q=");
+playa.setUbicacion2("Playa Punta Umbría, Huelva");
+playa.setTelefono("+34959123456");
+playa.setUltimo(true);
+playa.setEnlace("https://www.puntaumbria.es/");
+```
+
+```java Using the parameterized constructor
+Elementos monumento = new Elementos(
+    "Monumento a la Fe Descubridora",
+    "https://example.com/monumento.jpg",
+    "Estatua en honor a Cristóbal Colón",
+    "https://maps.google.com/?q=",
+    "Monumento Fe Descubridora, Huelva",
+    null, // No phone number
+    true,
+    "https://es.wikipedia.org/wiki/Monumento_a_la_Fe_Descubridora"
+);
+```
+
+```java Retrieving data from Firebase
+reference.addValueEventListener(new ValueEventListener() {
+    @Override
+    public void onDataChange(@NonNull DataSnapshot snapshot) {
+        for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
+            Elementos elemento = dataSnapshot.getValue(Elementos.class);
+            Log.d("HuelvaPedia", elemento.getNombre());
+        }
+    }
+    
+    @Override
+    public void onCancelled(@NonNull DatabaseError error) {
+        // Handle error
+    }
+});
+```
+
+</CodeGroup>
+
+## Related Classes
+
+- [Adaptador](/api/adaptador) - RecyclerView adapter that displays `Elementos` objects
+- [MainActivity](/api/main-activity) - Main screen that loads and displays `Elementos` from Firebase
+- [Secundaria](/api/secundaria) - Secondary screen for sub-categories

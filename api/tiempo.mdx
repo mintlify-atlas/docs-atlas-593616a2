@@ -1,0 +1,419 @@
+---
+title: 'Tiempo'
+description: 'Weather information activity displaying current conditions in Huelva'
+---
+
+## Overview
+
+The `Tiempo` class is an activity that displays current weather information for Huelva, Spain. It fetches data from the OpenWeatherMap API using Volley for network requests and displays temperature, weather conditions, humidity, wind speed, and other meteorological data.
+
+<Warning>
+The API key is currently hardcoded in the source. Consider moving it to `local.properties` and accessing via `BuildConfig` to prevent exposure in version control.
+</Warning>
+
+## Class Declaration
+
+```java
+package com.example.huelvapedia.ApiTiempo;
+
+public class Tiempo extends AppCompatActivity
+```
+
+**Extends:** `AppCompatActivity`
+
+## Constants
+
+<ResponseField name="URL_BASE" type="String" access="private static final">
+Base URL for the OpenWeatherMap API.
+
+**Value:** `"http://api.openweathermap.org/data/2.5/weather"`
+</ResponseField>
+
+<ResponseField name="API_KEY" type="String" access="private static final">
+OpenWeatherMap API key for authentication.
+
+**Value:** `"c0d138083fb0634d6d5cd36adafc9a77"`
+
+<Warning>
+This key is exposed in the source code. Move to a secure location before deploying to production.
+</Warning>
+</ResponseField>
+
+## Fields
+
+### UI Components
+
+<ResponseField name="tvTemperatura" type="TextView" access="private">
+Displays the current temperature in Celsius (bound to `R.id.temperatura`).
+</ResponseField>
+
+<ResponseField name="tvDescripcion" type="TextView" access="private">
+Displays the weather description in Spanish (bound to `R.id.descripcion`).
+</ResponseField>
+
+<ResponseField name="tvSensacion" type="TextView" access="private">
+Displays the "feels like" temperature (bound to `R.id.sensacion`).
+</ResponseField>
+
+<ResponseField name="tvPresion" type="TextView" access="private">
+Displays atmospheric pressure in hPa (bound to `R.id.presion`).
+</ResponseField>
+
+<ResponseField name="tvHumedad" type="TextView" access="private">
+Displays humidity percentage (bound to `R.id.humedad`).
+</ResponseField>
+
+<ResponseField name="tvNubes" type="TextView" access="private">
+Displays cloud coverage percentage (bound to `R.id.nubes`).
+</ResponseField>
+
+<ResponseField name="tvViento" type="TextView" access="private">
+Displays wind speed in meters per second (bound to `R.id.viento`).
+</ResponseField>
+
+<ResponseField name="imagenDelTiempo" type="ImageView" access="private">
+Displays an icon representing current weather conditions (bound to `R.id.imagentiempo`).
+</ResponseField>
+
+### Formatting
+
+<ResponseField name="formatoDecimal" type="DecimalFormat" access="private final">
+Decimal formatter for displaying temperature values with one decimal place.
+
+**Pattern:** `"#.#"`
+
+**Example:** `25.7ºC`
+</ResponseField>
+
+## Methods
+
+### onCreate
+
+```java
+@Override
+protected void onCreate(Bundle savedInstanceState)
+```
+
+Initializes the activity, sets up the UI, configures the action bar, and makes an API request to fetch weather data for Huelva.
+
+<ParamField path="savedInstanceState" type="Bundle">
+Bundle containing the activity's previously saved state
+</ParamField>
+
+**Implementation flow:**
+
+1. Sets content view to `R.layout.activity_tiempo`
+2. Initializes all TextView and ImageView references
+3. Configures action bar with Huelva icon
+4. Constructs API request URL for Huelva, Spain
+5. Creates Volley StringRequest to fetch weather data
+6. Processes JSON response and updates UI
+7. Handles errors with Toast messages
+
+---
+
+### traducirDescripcion
+
+```java
+private void traducirDescripcion(String descripcion)
+```
+
+Translates the English weather description from the API to Spanish and sets the appropriate weather icon.
+
+<ParamField path="descripcion" type="String">
+The English weather description from the OpenWeatherMap API
+</ParamField>
+
+**Supported descriptions:**
+
+| English | Spanish | Icon |
+|---------|---------|------|
+| `clear sky` | Despejado | `ic_soleado` |
+| `few clouds` | Ligeramente nublado | `ic_ligeramentenublado` |
+| `scattered clouds` | Nubes dispersas | `ic_nubesdispersas` |
+| `overcast clouds` | Nublado | `ic_nublado` |
+| `broken clouds` | Nubes rotas | `ic_nubesrotas` |
+| `light rain` | Lluvia ligera | `ic_lluvialigera` |
+| `moderate rain` | Lluvia moderada | `ic_lluviamoderada` |
+| `heavy intensity rain` | Lluvia pesada | `ic_lluviafuerte` |
+
+**Example:**
+```java
+traducirDescripcion("clear sky");
+// Sets tvDescripcion to "Despejado"
+// Sets imagenDelTiempo to ic_soleado drawable
+```
+
+## API Integration
+
+### Request Construction
+
+<CodeGroup>
+
+```java Building the API URL
+String urlCompleta = URL_BASE + "?q=Huelva,ES&appid=" + API_KEY;
+// Results in: http://api.openweathermap.org/data/2.5/weather?q=Huelva,ES&appid=c0d138083fb0634d6d5cd36adafc9a77
+```
+
+```java Volley Request
+StringRequest stringRequest = new StringRequest(Request.Method.POST, urlCompleta,
+    response -> {
+        // Success callback
+        try {
+            JSONObject jsonResponse = new JSONObject(response);
+            // Parse and display data
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    },
+    error -> {
+        // Error callback
+        Toast.makeText(getApplicationContext(), 
+            error.toString().trim(), 
+            Toast.LENGTH_SHORT).show();
+    }
+);
+
+RequestQueue requestQueue = Volley.newRequestQueue(getApplicationContext());
+requestQueue.add(stringRequest);
+```
+
+</CodeGroup>
+
+### JSON Response Parsing
+
+The activity parses the following data from the API response:
+
+<Tabs>
+  <Tab title="Weather Description">
+    ```java
+    JSONArray jsonArray = jsonResponse.getJSONArray("weather");
+    JSONObject jsonObjectWeather = jsonArray.getJSONObject(0);
+    String descripcion = jsonObjectWeather.getString("description");
+    traducirDescripcion(descripcion);
+    ```
+  </Tab>
+  
+  <Tab title="Temperature Data">
+    ```java
+    JSONObject jsonObjectMain = jsonResponse.getJSONObject("main");
+    double temp = jsonObjectMain.getDouble("temp") - 273.15; // Kelvin to Celsius
+    double sensacion = jsonObjectMain.getDouble("feels_like") - 273.15;
+    float presion = jsonObjectMain.getInt("pressure");
+    int humedad = jsonObjectMain.getInt("humidity");
+    
+    tvTemperatura.setText(formatoDecimal.format(temp) + "ºC");
+    tvSensacion.setText("Sensacion térmica: " + formatoDecimal.format(sensacion) + "ºC");
+    tvHumedad.setText("Humedad: " + humedad + "%");
+    tvPresion.setText("Presión atmosférica: " + presion + " hPa");
+    ```
+  </Tab>
+  
+  <Tab title="Wind & Clouds">
+    ```java
+    JSONObject jsonObjectWind = jsonResponse.getJSONObject("wind");
+    String viento = jsonObjectWind.getString("speed");
+    
+    JSONObject jsonObjectClouds = jsonResponse.getJSONObject("clouds");
+    String nubes = jsonObjectClouds.getString("all");
+    
+    tvViento.setText("Velocidad del viento: " + viento + "m/s (metros por segundo)");
+    tvNubes.setText("Cantidad de nubes: " + nubes + "%");
+    ```
+  </Tab>
+</Tabs>
+
+## Usage Examples
+
+<CodeGroup>
+
+```java Launching from MainActivity
+// In MainActivity.onCreate()
+botonTiempo.setOnClickListener(v -> {
+    Intent intent = new Intent(v.getContext(), Tiempo.class);
+    startActivity(intent);
+});
+```
+
+```java Launching from any context
+Intent intent = new Intent(context, Tiempo.class);
+startActivity(intent);
+```
+
+```xml AndroidManifest.xml
+<activity
+    android:name=".ApiTiempo.Tiempo"
+    android:exported="false"
+    android:label="Tiempo en Huelva" />
+```
+
+</CodeGroup>
+
+## Sample API Response
+
+<Expandable title="OpenWeatherMap JSON Response">
+```json
+{
+  "coord": {
+    "lon": -6.9447,
+    "lat": 37.2614
+  },
+  "weather": [
+    {
+      "id": 800,
+      "main": "Clear",
+      "description": "clear sky",
+      "icon": "01d"
+    }
+  ],
+  "main": {
+    "temp": 298.15,
+    "feels_like": 297.82,
+    "pressure": 1013,
+    "humidity": 53
+  },
+  "wind": {
+    "speed": 3.6
+  },
+  "clouds": {
+    "all": 0
+  },
+  "dt": 1647345600,
+  "sys": {
+    "country": "ES",
+    "sunrise": 1647323400,
+    "sunset": 1647366600
+  },
+  "timezone": 3600,
+  "name": "Huelva"
+}
+```
+</Expandable>
+
+## Data Display Format
+
+The activity formats and displays weather data as follows:
+
+| Data | Format | Example |
+|------|--------|---------|
+| Temperature | `#.#ºC` | `25.3ºC` |
+| Feels Like | `Sensacion térmica: #.#ºC` | `Sensacion térmica: 24.1ºC` |
+| Humidity | `Humedad: #%` | `Humedad: 65%` |
+| Clouds | `Cantidad de nubes: #%` | `Cantidad de nubes: 20%` |
+| Wind | `Velocidad del viento: #m/s (metros por segundo)` | `Velocidad del viento: 3.5m/s (metros por segundo)` |
+| Pressure | `Presión atmosférica: # hPa` | `Presión atmosférica: 1013.0 hPa` |
+
+## Error Handling
+
+<Expandable title="Network Errors">
+  Network errors (no internet, timeout, etc.) are displayed via Toast:
+  
+  ```java
+  error -> Toast.makeText(getApplicationContext(), 
+      error.toString().trim(), 
+      Toast.LENGTH_SHORT).show()
+  ```
+  
+  **Common errors:**
+  - `NoConnectionError`: No internet connection
+  - `TimeoutError`: Request took too long
+  - `ServerError`: API server error (5xx)
+  - `AuthFailureError`: Invalid API key
+</Expandable>
+
+<Expandable title="JSON Parsing Errors">
+  JSON parsing errors are caught and logged:
+  
+  ```java
+  try {
+      JSONObject jsonResponse = new JSONObject(response);
+      // ... parsing code ...
+  } catch (JSONException e) {
+      e.printStackTrace();
+  }
+  ```
+  
+  Consider adding user-facing error handling:
+  ```java
+  catch (JSONException e) {
+      e.printStackTrace();
+      Toast.makeText(this, "Error processing weather data", Toast.LENGTH_SHORT).show();
+  }
+  ```
+</Expandable>
+
+## Temperature Conversion
+
+The API returns temperatures in Kelvin. The activity converts to Celsius:
+
+```java
+double temp = jsonObjectMain.getDouble("temp") - 273.15;
+double sensacion = jsonObjectMain.getDouble("feels_like") - 273.15;
+```
+
+**Conversion formula:**
+```
+Celsius = Kelvin - 273.15
+```
+
+**Example:**
+- API returns: `298.15 K`
+- Displayed: `25.0ºC`
+
+## Security Recommendations
+
+<Warning>
+**API Key Exposure**
+
+The current implementation exposes the API key in source code. Follow these steps to secure it:
+
+1. **Add to local.properties:**
+   ```properties
+   OPENWEATHER_API_KEY=c0d138083fb0634d6d5cd36adafc9a77
+   ```
+
+2. **Update build.gradle:**
+   ```gradle
+   android {
+       defaultConfig {
+           Properties properties = new Properties()
+           properties.load(project.rootProject.file("local.properties").newDataInputStream())
+           buildConfigField "String", "OPENWEATHER_API_KEY", "\"${properties.getProperty('OPENWEATHER_API_KEY')}\""
+       }
+   }
+   ```
+
+3. **Update Tiempo.java:**
+   ```java
+   private static final String API_KEY = BuildConfig.OPENWEATHER_API_KEY;
+   ```
+
+4. **Add to .gitignore:**
+   ```
+   local.properties
+   ```
+</Warning>
+
+## Dependencies
+
+Required dependencies:
+
+```gradle
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.x.x'
+    implementation 'com.android.volley:volley:1.2.x'
+}
+```
+
+## Permissions
+
+Required in `AndroidManifest.xml`:
+
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+```
+
+## Related Classes
+
+- [MainActivity](/api/main-activity) - Provides navigation to this activity via weather button

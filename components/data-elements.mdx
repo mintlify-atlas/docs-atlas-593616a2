@@ -1,0 +1,362 @@
+---
+title: "Elementos (Data Model)"
+description: "The core data model class representing encyclopedia topics and content in HuelvaPedia"
+---
+
+Elementos is a Plain Old Java Object (POJO) that represents individual encyclopedia entries in HuelvaPedia. It's designed to work seamlessly with Firebase Realtime Database for automatic serialization and deserialization.
+
+## Overview
+
+The Elementos class stores all information about a topic or subtopic, including text content, images, location data, contact information, and navigation metadata. Each instance can represent either a parent topic (with subtopics) or a final leaf node with actionable information.
+
+## Class Definition
+
+<CodeGroup>
+
+```java Elementos.java
+package com.example.huelvapedia;
+
+public class Elementos { //Clase destinada a almacenar los elementos que componen cada tema
+    private String nombre;
+    private String foto;
+    private String descripcion;
+    private String ubicacion1;
+    private String ubicacion2;
+    private String telefono;
+    private Boolean ultimo;
+    private String enlace;
+
+    public Elementos() { //Constructor vacio
+    }
+
+    public Elementos(String nombre, String foto, String descripcion, String ubicacion1, String ubicacion2, String telefono, Boolean ultimo, String enlace) {
+        this.nombre = nombre;
+        this.foto = foto;
+        this.descripcion = descripcion;
+        this.ubicacion1 = ubicacion1;
+        this.ubicacion2 = ubicacion2;
+        this.telefono = telefono;
+        this.ultimo = ultimo;
+        this.enlace = enlace;
+    }
+    
+    // ... getters and setters
+}
+```
+
+</CodeGroup>
+
+## Fields
+
+<ParamField path="nombre" type="String">
+  The name or title of the encyclopedia entry. Used both for display and as a key for Firebase queries in Secundaria activity.
+</ParamField>
+
+<ParamField path="foto" type="String">
+  URL of the image representing this element. Loaded using the Picasso library in the Adaptador.
+</ParamField>
+
+<ParamField path="descripcion" type="String">
+  A brief description or summary of the encyclopedia entry. Displayed as body text in the RecyclerView items.
+</ParamField>
+
+<ParamField path="ubicacion1" type="String">
+  The first part of the location URI (e.g., "https://www.google.com/maps/search/?api=1&query="). Can be null if no location is associated.
+</ParamField>
+
+<ParamField path="ubicacion2" type="String">
+  The second part of the location URI, typically the encoded address or place name. Combined with ubicacion1 to form a complete maps URL. Can be null.
+</ParamField>
+
+<ParamField path="telefono" type="String">
+  Phone number associated with this element. Used with ACTION_DIAL intent for calling. Can be null.
+</ParamField>
+
+<ParamField path="ultimo" type="Boolean">
+  Flag indicating whether this is a final-level element (true) or a navigation element with subtopics (false). Controls the behavior in Adaptador.
+</ParamField>
+
+<ParamField path="enlace" type="String">
+  External web link URL (e.g., Wikipedia, official website). Opened with ACTION_VIEW intent. Can be null.
+</ParamField>
+
+## Constructors
+
+### Empty Constructor
+
+<CodeGroup>
+
+```java Empty Constructor
+public Elementos() { //Constructor vacio
+}
+```
+
+</CodeGroup>
+
+**Required for Firebase**: Firebase Realtime Database requires a no-argument constructor to deserialize data from the database into Java objects.
+
+### Full Constructor
+
+<CodeGroup>
+
+```java Full Constructor
+public Elementos(String nombre, String foto, String descripcion, String ubicacion1, 
+                String ubicacion2, String telefono, Boolean ultimo, String enlace) {
+    this.nombre = nombre;
+    this.foto = foto;
+    this.descripcion = descripcion;
+    this.ubicacion1 = ubicacion1;
+    this.ubicacion2 = ubicacion2;
+    this.telefono = telefono;
+    this.ultimo = ultimo;
+    this.enlace = enlace;
+}
+```
+
+</CodeGroup>
+
+Allows manual creation of Elementos objects with all fields initialized.
+
+## Getters and Setters
+
+The class provides standard JavaBean getter and setter methods for all fields:
+
+<Tabs>
+  <Tab title="Basic Fields">
+    ```java
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public String getFoto() {
+        return foto;
+    }
+
+    public void setFoto(String foto) {
+        this.foto = foto;
+    }
+
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
+    ```
+  </Tab>
+  <Tab title="Location Fields">
+    ```java
+    public String getUbicacion1() {
+        return ubicacion1;
+    }
+
+    public void setUbicacion1(String ubicacion1) {
+        this.ubicacion1 = ubicacion1;
+    }
+
+    public String getUbicacion2() {
+        return ubicacion2;
+    }
+
+    public void setUbicacion2(String ubicacion2) {
+        this.ubicacion2 = ubicacion2;
+    }
+    ```
+  </Tab>
+  <Tab title="Action Fields">
+    ```java
+    public String getTelefono() {
+        return telefono;
+    }
+
+    public void setTelefono(String telefono) {
+        this.telefono = telefono;
+    }
+
+    public Boolean getUltimo() { 
+        return ultimo; 
+    }
+
+    public void setUltimo(Boolean ultimo) {
+        this.ultimo = ultimo;
+    }
+
+    public String getEnlace() {
+        return enlace;
+    }
+
+    public void setEnlace(String enlace) {
+        this.enlace = enlace;
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+All getters and setters follow standard JavaBean naming conventions, which is essential for Firebase's automatic data mapping to work correctly.
+</Note>
+
+## Firebase Integration
+
+The Elementos class is designed as a Firebase-compatible POJO:
+
+### Deserialization from Firebase
+
+<CodeGroup>
+
+```java In MainActivity/Secundaria
+reference.addValueEventListener(new ValueEventListener()
+{
+    @Override
+    public void onDataChange(@NonNull DataSnapshot snapshot)
+    {
+        listaElementos.clear();
+        for (DataSnapshot dataSnapshot : snapshot.getChildren())
+        {
+            Elementos elemento = dataSnapshot.getValue(Elementos.class);
+            listaElementos.add(elemento);
+        }
+        adaptador = new Adaptador(MainActivity.this, listaElementos);
+        recyclerView.setAdapter(adaptador);
+    }
+    // ...
+});
+```
+
+</CodeGroup>
+
+Firebase automatically maps database fields to class properties using the getter/setter methods.
+
+## Data Model Patterns
+
+### Navigation Elements
+
+Elements that lead to subtopics have:
+
+```java
+ultimo = false
+ubicacion1 = null
+ubicacion2 = null
+telefono = null
+enlace = null
+```
+
+**Behavior**: Tapping navigates to Secundaria activity with subtopics.
+
+### Action Elements (Final Level)
+
+Elements with actionable information have:
+
+```java
+ultimo = true
+// One or more of these can be populated:
+ubicacion1 = "https://www.google.com/maps/search/?api=1&query="
+ubicacion2 = "Plaza de las Monjas, Huelva"
+telefono = "959123456"
+enlace = "https://es.wikipedia.org/wiki/..."
+```
+
+**Behavior**: Buttons appear for map, phone, or web based on which fields are populated.
+
+## Usage in Adaptador
+
+The Adaptador uses Elementos fields to determine display and behavior:
+
+<CodeGroup>
+
+```java Data Binding
+Elementos elemento = elementos.get(position);
+
+holder.nombre.setText(elemento.getNombre());
+holder.descripcion.setText(elemento.getDescripcion());
+Picasso.get().load(elemento.getFoto()).into(holder.imagen);
+```
+
+```java Conditional Button Display
+boolean tieneUbicacion = elemento.getUbicacion1() != null && elemento.getUbicacion2() != null;
+boolean tieneTelefono = elemento.getTelefono() != null;
+boolean tieneEnlace = elemento.getEnlace() != null;
+
+if (elemento.getUltimo()) {
+    // Show/hide buttons based on available data
+    if (tieneUbicacion) {
+        // Configure map button
+    } else {
+        holder.botonUbicacion.setVisibility(View.GONE);
+    }
+    // Similar logic for phone and web buttons
+}
+```
+
+</CodeGroup>
+
+## Example Database Structure
+
+Here's how Elementos maps to Firebase Realtime Database:
+
+```json
+{
+  "principal": {
+    "elemento1": {
+      "nombre": "Monumentos",
+      "foto": "https://example.com/monumentos.jpg",
+      "descripcion": "Monumentos históricos de Huelva",
+      "ubicacion1": null,
+      "ubicacion2": null,
+      "telefono": null,
+      "ultimo": false,
+      "enlace": null
+    },
+    "elemento2": {
+      "nombre": "Catedral de Huelva",
+      "foto": "https://example.com/catedral.jpg",
+      "descripcion": "La Catedral de la Merced",
+      "ubicacion1": "https://www.google.com/maps/search/?api=1&query=",
+      "ubicacion2": "Catedral de Huelva",
+      "telefono": "959123456",
+      "ultimo": true,
+      "enlace": "https://es.wikipedia.org/wiki/Catedral_de_Huelva"
+    }
+  }
+}
+```
+
+## Key Design Decisions
+
+### Split Location Fields
+
+The location is split into `ubicacion1` (base URL) and `ubicacion2` (query) to allow:
+- Flexible URL construction
+- Proper encoding of the query part
+- Reusability of the base URL across multiple elements
+
+### Boolean vs boolean
+
+Uses `Boolean` (wrapper) instead of `boolean` (primitive) to allow null values, which is important for Firebase compatibility and optional fields.
+
+### String-based URLs
+
+All URLs (photo, location, web link) are stored as Strings rather than Uri objects for Firebase serialization simplicity.
+
+## Best Practices
+
+<Note>
+When creating Elementos objects for Firebase:
+1. Always provide `nombre`, `foto`, and `descripcion` (required fields)
+2. Set `ultimo` to indicate navigation vs. action behavior
+3. Populate `ubicacion1` and `ubicacion2` together (both or neither)
+4. Use null for optional fields that don't apply
+5. Ensure `foto` URLs are publicly accessible for Picasso to load
+</Note>
+
+## Related Components
+
+- **Adaptador**: Consumes Elementos to render RecyclerView items
+- **MainActivity**: Fetches Elementos from the "principal" Firebase node
+- **Secundaria**: Fetches Elementos from dynamically named Firebase nodes
+- **Firebase Realtime Database**: Stores Elementos as JSON objects

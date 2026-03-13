@@ -1,0 +1,242 @@
+---
+title: Weather Integration
+description: OpenWeatherMap API integration for displaying real-time weather data for Huelva, Spain
+---
+
+## Overview
+
+HuelvaPedia integrates with the OpenWeatherMap API to provide real-time weather information for Huelva, Spain. The feature uses the Volley library for HTTP requests and displays temperature, humidity, pressure, wind speed, cloud coverage, and weather conditions.
+
+## API Configuration
+
+### OpenWeatherMap Setup
+
+```java Tiempo.java (lines 26-27)
+private static final String URL_BASE = "http://api.openweathermap.org/data/2.5/weather";
+private static final String API_KEY = "c0d138083fb0634d6d5cd36adafc9a77";
+```
+
+<Warning>
+The API key is currently hardcoded in the source. The TODO comment at line 25 indicates this should be moved to `local.properties` and accessed via `BuildConfig` to prevent exposure in version control.
+</Warning>
+
+### Request URL Construction
+
+```java Tiempo.java (line 53)
+String urlCompleta = URL_BASE + "?q=Huelva,ES&appid=" + API_KEY;
+```
+
+The API call targets Huelva, Spain with the query parameter `q=Huelva,ES`.
+
+## Activity Implementation
+
+### UI Components
+
+```java Tiempo.java (lines 29-30)
+private TextView tvTemperatura, tvDescripcion, tvSensacion, tvPresion, tvHumedad, tvNubes, tvViento;
+private ImageView imagenDelTiempo;
+```
+
+The activity displays seven data points:
+- **Temperature** - Current temperature in Celsius
+- **Description** - Weather condition (clear, cloudy, rainy, etc.)
+- **Feels Like** - Perceived temperature
+- **Pressure** - Atmospheric pressure in hPa
+- **Humidity** - Percentage of humidity
+- **Clouds** - Cloud coverage percentage
+- **Wind** - Wind speed in m/s
+
+### Initialization
+
+```java Tiempo.java (lines 39-51)
+tvTemperatura = findViewById(R.id.temperatura);
+tvDescripcion = findViewById(R.id.descripcion);
+tvSensacion = findViewById(R.id.sensacion);
+tvPresion = findViewById(R.id.presion);
+tvHumedad = findViewById(R.id.humedad);
+tvNubes = findViewById(R.id.nubes);
+tvViento = findViewById(R.id.viento);
+
+imagenDelTiempo = findViewById(R.id.imagentiempo);
+
+ActionBar actionBar = getSupportActionBar();
+actionBar.setIcon(R.mipmap.ic_escudohuelva);
+actionBar.setDisplayShowHomeEnabled(true);
+```
+
+## Volley HTTP Request
+
+### Making the API Call
+
+```java Tiempo.java (lines 55-88)
+StringRequest stringRequest = new StringRequest(Request.Method.POST, urlCompleta,
+        response -> {
+            try
+            {
+                JSONObject jsonResponse = new JSONObject(response);
+                JSONArray jsonArray = jsonResponse.getJSONArray("weather");
+                JSONObject jsonObjectWeather = jsonArray.getJSONObject(0);
+                String descripcion = jsonObjectWeather.getString("description");
+                JSONObject jsonObjectMain = jsonResponse.getJSONObject("main");
+                double temp = jsonObjectMain.getDouble("temp") - 273.15;
+                double sensacion = jsonObjectMain.getDouble("feels_like") - 273.15;
+                float presion = jsonObjectMain.getInt("pressure");
+                int humedad = jsonObjectMain.getInt("humidity");
+                JSONObject jsonObjectWind = jsonResponse.getJSONObject("wind");
+                String viento = jsonObjectWind.getString("speed");
+                JSONObject jsonObjectClouds = jsonResponse.getJSONObject("clouds");
+                String nubes = jsonObjectClouds.getString("all");
+
+                traducirDescripcion(descripcion);
+
+                tvTemperatura.setText(formatoDecimal.format(temp) + "ºC");
+                tvSensacion.setText("Sensacion térmica: " + formatoDecimal.format(sensacion) + "ºC");
+                tvHumedad.setText("Humedad: " + humedad + "%");
+                tvNubes.setText("Cantidad de nubes: " + nubes + "%");
+                tvViento.setText("Velocidad del viento: " + viento + "m/s (metros por segundo)");
+                tvPresion.setText("Presión atmosférica: " + presion + " hPa");
+            }
+            catch (JSONException e)
+            {
+                e.printStackTrace();
+            }
+        },
+        error -> Toast.makeText(getApplicationContext(), error.toString().trim(), Toast.LENGTH_SHORT).show()
+);
+
+RequestQueue requestQueue = Volley.newRequestQueue(getApplicationContext());
+requestQueue.add(stringRequest);
+```
+
+<Info>
+Temperature values are returned in Kelvin from the API and converted to Celsius by subtracting 273.15.
+</Info>
+
+## JSON Response Parsing
+
+The API response structure follows this pattern:
+
+<CodeGroup>
+```json Weather Data
+{
+  "weather": [
+    {
+      "description": "clear sky"
+    }
+  ],
+  "main": {
+    "temp": 293.15,
+    "feels_like": 291.15,
+    "pressure": 1013,
+    "humidity": 65
+  },
+  "wind": {
+    "speed": 5.5
+  },
+  "clouds": {
+    "all": 20
+  }
+}
+```
+
+```java Parsing Logic
+JSONObject jsonResponse = new JSONObject(response);
+JSONArray jsonArray = jsonResponse.getJSONArray("weather");
+JSONObject jsonObjectWeather = jsonArray.getJSONObject(0);
+String descripcion = jsonObjectWeather.getString("description");
+
+JSONObject jsonObjectMain = jsonResponse.getJSONObject("main");
+double temp = jsonObjectMain.getDouble("temp") - 273.15;
+double sensacion = jsonObjectMain.getDouble("feels_like") - 273.15;
+```
+</CodeGroup>
+
+## Weather Description Translation
+
+The app translates English weather descriptions from the API to Spanish and sets appropriate weather icons.
+
+```java Tiempo.java (lines 97-134)
+private void traducirDescripcion(String descripcion)
+{
+    switch (descripcion)
+    {
+        case "clear sky":
+            tvDescripcion.setText("Despejado");
+            imagenDelTiempo.setImageResource(R.mipmap.ic_soleado);
+            break;
+        case "few clouds":
+            tvDescripcion.setText("Ligeramente nublado");
+            imagenDelTiempo.setImageResource(R.mipmap.ic_ligeramentenublado);
+            break;
+        case "scattered clouds":
+            tvDescripcion.setText("Nubes dispersas");
+            imagenDelTiempo.setImageResource(R.mipmap.ic_nubesdispersas);
+            break;
+        case "overcast clouds":
+            tvDescripcion.setText("Nublado");
+            imagenDelTiempo.setImageResource(R.mipmap.ic_nublado);
+            break;
+        case "light rain":
+            tvDescripcion.setText("Lluvia ligera");
+            imagenDelTiempo.setImageResource(R.mipmap.ic_lluvialigera);
+            break;
+        case "broken clouds":
+            tvDescripcion.setText("Nubes rotas");
+            imagenDelTiempo.setImageResource(R.mipmap.ic_nubesrotas);
+            break;
+        case "heavy intensity rain":
+            tvDescripcion.setText("Lluvia pesada");
+            imagenDelTiempo.setImageResource(R.mipmap.ic_lluviafuerte);
+            break;
+        case "moderate rain":
+            tvDescripcion.setText("Lluvia moderada");
+            imagenDelTiempo.setImageResource(R.mipmap.ic_lluviamoderada);
+            break;
+    }
+}
+```
+
+### Supported Weather Conditions
+
+| English Description | Spanish Translation | Icon Resource |
+|---------------------|---------------------|---------------|
+| clear sky | Despejado | ic_soleado |
+| few clouds | Ligeramente nublado | ic_ligeramentenublado |
+| scattered clouds | Nubes dispersas | ic_nubesdispersas |
+| overcast clouds | Nublado | ic_nublado |
+| broken clouds | Nubes rotas | ic_nubesrotas |
+| light rain | Lluvia ligera | ic_lluvialigera |
+| moderate rain | Lluvia moderada | ic_lluviamoderada |
+| heavy intensity rain | Lluvia pesada | ic_lluviafuerte |
+
+## Number Formatting
+
+Temperature values are formatted to one decimal place:
+
+```java Tiempo.java (line 32)
+private final DecimalFormat formatoDecimal = new DecimalFormat("#.#");
+```
+
+This ensures temperatures display as "23.5ºC" rather than "23.500000ºC".
+
+## Access from MainActivity
+
+Users access the weather feature via a button in MainActivity:
+
+```java MainActivity.java (lines 72-75)
+botonTiempo.setOnClickListener(v -> {
+    Intent intent = new Intent(v.getContext(), Tiempo.class);
+    startActivity(intent);
+});
+```
+
+<Tip>
+The weather button is hidden in Secundaria activity to keep it accessible only from the main screen.
+</Tip>
+
+## Key Implementation Files
+
+- `Tiempo.java:26-27` - API configuration
+- `Tiempo.java:55-88` - Volley request and JSON parsing
+- `Tiempo.java:97-134` - Weather description translation method
+- `MainActivity.java:72-75` - Weather button click handler
