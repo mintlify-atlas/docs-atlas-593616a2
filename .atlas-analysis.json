@@ -1,0 +1,88 @@
+{
+  "projectType": "frontend",
+  "projectName": "HuelvaPedia",
+  "projectDescription": "Android encyclopedia app showcasing cultural, historical, and geographical information about Huelva, Spain with cloud-based data from Firebase.",
+  "theme": "almond",
+  "primaryColor": "#94cb04",
+  "lightColor": "#545454",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Setup",
+            "pages": [
+              "setup/prerequisites",
+              "setup/installation",
+              "setup/firebase-configuration"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "pages": [
+              "architecture/overview",
+              "architecture/data-model",
+              "architecture/firebase-integration"
+            ]
+          },
+          {
+            "group": "Components",
+            "pages": [
+              "components/activities",
+              "components/adapter",
+              "components/data-elements"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/category-navigation",
+              "features/weather-integration",
+              "features/external-actions"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Core Classes",
+            "pages": [
+              "api/elementos",
+              "api/adaptador",
+              "api/main-activity",
+              "api/secundaria",
+              "api/tiempo"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Cloud-based data with Firebase Realtime Database",
+    "Categorized information browsing (History, Gastronomy, Places)",
+    "Real-time weather integration with OpenWeatherMap API",
+    "RecyclerView-based dynamic content rendering",
+    "External actions (Maps, Phone, Web links)",
+    "Material Design UI with custom animations"
+  ],
+  "publicApiSurface": [
+    "MainActivity - Main entry point with category listing",
+    "Secundaria - Secondary activity for subcategory details",
+    "Tiempo - Weather activity with OpenWeatherMap integration",
+    "Elementos - Data model class for Firebase content",
+    "Adaptador - RecyclerView adapter for content display",
+    "PantallaCarga - Splash screen activity"
+  ]
+}
